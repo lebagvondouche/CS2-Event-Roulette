@@ -1,0 +1,777 @@
+using CounterStrikeSharp.API;
+using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Utils;
+using CounterStrikeSharp.API.Modules.Timers;
+using CounterStrikeSharp.API.Modules.Cvars;
+using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Admin;
+using Microsoft.Extensions.Logging;
+
+namespace RandomRoundEvents;
+
+public class RandomRoundEventsConfig : IBasePluginConfig
+{
+    public int Version { get; set; } = 1;
+    public bool Debug { get; set; } = false;
+
+    // Event toggles
+    public bool EnableLowGravity { get; set; } = true;
+    public bool EnableHeadshotOnly { get; set; } = true;
+    public bool EnableRandomWeapon { get; set; } = true;
+    public bool EnableDoubleDamage { get; set; } = true;
+    public bool EnableSwapTeams { get; set; } = true;
+    public bool EnableFlashbangSpam { get; set; } = true;
+    public bool EnableKnifeOnly { get; set; } = true;
+    public bool EnableZeusOnly { get; set; } = true;
+    public bool EnableNoReload { get; set; } = true;
+    public bool EnableGravitySwitch { get; set; } = true;
+    public bool EnableSpeedRandomizer { get; set; } = true;
+    public bool EnableLastManStanding { get; set; } = true;
+    public bool EnablePowerUpRound { get; set; } = true;
+
+    // Event settings
+    public float LowGravityValue { get; set; } = 400.0f;
+    public float GravitySwitchLow { get; set; } = 400.0f;
+    public float GravitySwitchHigh { get; set; } = 1200.0f;
+    public float GravitySwitchInterval { get; set; } = 5.0f;
+    public float SpeedMin { get; set; } = 0.5f;
+    public float SpeedMax { get; set; } = 2.0f;
+    public int SwapInterval { get; set; } = 30;
+    public int FlashbangStartHP { get; set; } = 1;
+    public float FlashbangRefillInterval { get; set; } = 3.0f;
+    public int PowerUpHP { get; set; } = 300;
+    public int DoubleDamageMultiplier { get; set; } = 2;
+}
+
+public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConfig>
+{
+    public override string ModuleName => "RandomRoundEvents";
+    public override string ModuleVersion => "1.2";
+    public override string ModuleAuthor => "Martin Persson";
+    public override string ModuleDescription => "A plugin that triggers random events during rounds.";
+
+    public RandomRoundEventsConfig Config { get; set; } = new RandomRoundEventsConfig();
+
+    private readonly Random _random = new();
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _gravitySwitchTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _flashbangSpamTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _gravityMonitorTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _speedEnforceTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _swapTimer;
+    private readonly Dictionary<int, float> _playerSpeeds = new();
+    private bool _isLoaded = false;
+    private bool _roundEventTriggered = false;
+    private float _currentGravity = 800.0f;
+
+    private static readonly IReadOnlyList<string> RandomWeapons = new List<string>
+    {
+        "weapon_ak47", "weapon_m4a1", "weapon_awp", "weapon_ssg08", "weapon_mp5sd", "weapon_ump45", "weapon_deagle", "weapon_glock"
+    }.AsReadOnly();
+
+    private static readonly IReadOnlyList<string> Pistols = new List<string>
+    {
+        "weapon_deagle", "weapon_glock", "weapon_p250", "weapon_usp_silencer", "weapon_fiveseven"
+    }.AsReadOnly();
+
+    private enum EventType
+    {
+        None,
+        LowGravity,
+        HeadshotOnly,
+        RandomWeapon,
+        DoubleDamage,
+        SwapTeams,
+        FlashbangSpam,
+        KnifeOnly,
+        ZeusOnly,
+        NoReload,
+        GravitySwitch,
+        SpeedRandomizer,
+        LastManStanding,
+        PowerUpRound
+    }
+
+    private EventType _activeEvent = EventType.None;
+
+    public void OnConfigParsed(RandomRoundEventsConfig config)
+    {
+        Config = config;
+
+        // Validate config values
+        Config.LowGravityValue = Math.Clamp(Config.LowGravityValue, 50.0f, 800.0f);
+        Config.GravitySwitchLow = Math.Clamp(Config.GravitySwitchLow, 50.0f, 800.0f);
+        Config.GravitySwitchHigh = Math.Clamp(Config.GravitySwitchHigh, 800.0f, 2000.0f);
+        Config.GravitySwitchInterval = Math.Clamp(Config.GravitySwitchInterval, 1.0f, 60.0f);
+        Config.SpeedMin = Math.Clamp(Config.SpeedMin, 0.1f, 3.0f);
+        Config.SpeedMax = Math.Clamp(Config.SpeedMax, Config.SpeedMin, 5.0f);
+        Config.SwapInterval = Math.Clamp(Config.SwapInterval, 5, 120);
+        Config.FlashbangStartHP = Math.Clamp(Config.FlashbangStartHP, 1, 100);
+        Config.FlashbangRefillInterval = Math.Clamp(Config.FlashbangRefillInterval, 1.0f, 30.0f);
+        Config.PowerUpHP = Math.Clamp(Config.PowerUpHP, 100, 1000);
+        Config.DoubleDamageMultiplier = Math.Clamp(Config.DoubleDamageMultiplier, 2, 10);
+
+        Logger.LogInformation("[RandomRoundEvents] Configuration loaded.");
+        if (Config.Debug)
+            Logger.LogInformation("[RandomRoundEvents] Debug mode is enabled.");
+    }
+
+    public override void Load(bool hotReload)
+    {
+        if (_isLoaded)
+        {
+            Logger.LogWarning("[RandomRoundEvents] Plugin already loaded. Skipping duplicate load.");
+            return;
+        }
+
+        RegisterEventHandler<EventRoundStart>(OnRoundStart);
+        RegisterEventHandler<EventRoundEnd>(OnRoundEnd);
+        RegisterEventHandler<EventItemPurchase>(OnItemPurchase, HookMode.Pre);
+
+        AddCommand("css_rre_lowgravity", "Trigger Low Gravity event", OnLowGravityCommand);
+        AddCommand("css_rre_headshotonly", "Trigger Headshot Only event", OnHeadshotOnlyCommand);
+        AddCommand("css_rre_randomweapon", "Trigger Random Weapon event", OnRandomWeaponCommand);
+        AddCommand("css_rre_doubledamage", "Trigger Double Damage event", OnDoubleDamageCommand);
+        AddCommand("css_rre_swapteams", "Trigger Swap Teams event", OnSwapTeamsCommand);
+        AddCommand("css_rre_flashbang", "Trigger Flashbang Spam event", OnFlashbangSpamCommand);
+        AddCommand("css_rre_knife", "Trigger Knife-Only event", OnKnifeOnlyCommand);
+        AddCommand("css_rre_zeus", "Trigger Zeus-Only event", OnZeusOnlyCommand);
+        AddCommand("css_rre_noreload", "Trigger No Reload event", OnNoReloadCommand);
+        AddCommand("css_rre_gravityswitch", "Trigger Gravity Switch event", OnGravitySwitchCommand);
+        AddCommand("css_rre_speed", "Trigger Speed Randomizer event", OnSpeedRandomizerCommand);
+        AddCommand("css_rre_lastman", "Trigger Last Man Standing event", OnLastManStandingCommand);
+        AddCommand("css_rre_powerup", "Trigger Power-Up Round event", OnPowerUpRoundCommand);
+        AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
+
+        _isLoaded = true;
+        Logger.LogInformation("[RandomRoundEvents] Plugin loaded successfully.");
+    }
+
+    public override void Unload(bool hotReload)
+    {
+        _gravitySwitchTimer?.Kill();
+        _flashbangSpamTimer?.Kill();
+        _gravityMonitorTimer?.Kill();
+        _speedEnforceTimer?.Kill();
+        _swapTimer?.Kill();
+        _isLoaded = false;
+        _roundEventTriggered = false;
+        base.Unload(hotReload);
+    }
+
+    private HookResult OnRoundStart(EventRoundStart @event, GameEventInfo info)
+    {
+        if (_roundEventTriggered)
+            return HookResult.Continue;
+
+        _gravitySwitchTimer?.Kill();
+        _flashbangSpamTimer?.Kill();
+        _gravityMonitorTimer?.Kill();
+        _speedEnforceTimer?.Kill();
+        _swapTimer?.Kill();
+        _playerSpeeds.Clear();
+
+        var enabledEvents = new List<EventType>();
+        if (Config.EnableLowGravity) enabledEvents.Add(EventType.LowGravity);
+        if (Config.EnableHeadshotOnly) enabledEvents.Add(EventType.HeadshotOnly);
+        if (Config.EnableRandomWeapon) enabledEvents.Add(EventType.RandomWeapon);
+        if (Config.EnableDoubleDamage) enabledEvents.Add(EventType.DoubleDamage);
+        if (Config.EnableSwapTeams) enabledEvents.Add(EventType.SwapTeams);
+        if (Config.EnableFlashbangSpam) enabledEvents.Add(EventType.FlashbangSpam);
+        if (Config.EnableKnifeOnly) enabledEvents.Add(EventType.KnifeOnly);
+        if (Config.EnableZeusOnly) enabledEvents.Add(EventType.ZeusOnly);
+        if (Config.EnableNoReload) enabledEvents.Add(EventType.NoReload);
+        if (Config.EnableGravitySwitch) enabledEvents.Add(EventType.GravitySwitch);
+        if (Config.EnableSpeedRandomizer) enabledEvents.Add(EventType.SpeedRandomizer);
+        if (Config.EnableLastManStanding) enabledEvents.Add(EventType.LastManStanding);
+        if (Config.EnablePowerUpRound) enabledEvents.Add(EventType.PowerUpRound);
+
+        if (enabledEvents.Count == 0)
+        {
+            Logger.LogWarning("[RandomRoundEvents] No events enabled in configuration.");
+            return HookResult.Continue;
+        }
+
+        EventType selectedEvent = enabledEvents[_random.Next(0, enabledEvents.Count)];
+        _activeEvent = selectedEvent;
+        Logger.LogInformation("[RandomRoundEvents] Selected event: {Event}", selectedEvent);
+
+        switch (selectedEvent)
+        {
+            case EventType.LowGravity:
+                AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. No buying!");
+                SetGravity(Config.LowGravityValue);
+                StartGravityMonitor();
+                StripAllWeapons();
+                GiveAllPlayersScout();
+                GiveAllPlayersZeusOnly();
+                break;
+            case EventType.HeadshotOnly:
+                AnnounceEvent("Headshot Only Round", "Only headshots deal damage. Aim for the head!");
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                break;
+            case EventType.RandomWeapon:
+                AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
+                StripAllWeapons();
+                GiveAllPlayersRandomWeapons();
+                break;
+            case EventType.DoubleDamage:
+                AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                break;
+            case EventType.SwapTeams:
+                AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
+                SwapRandomPlayers();
+                StartSwapTimer();
+                break;
+            case EventType.FlashbangSpam:
+                AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
+                StripAllWeapons();
+                SetAllPlayersHealth(Config.FlashbangStartHP);
+                GiveAllPlayersFlashbangs();
+                StartFlashbangSpamRound();
+                RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+                break;
+            case EventType.KnifeOnly:
+                AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
+                StripAllWeapons();
+                GiveAllPlayersKnives();
+                break;
+            case EventType.ZeusOnly:
+                AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
+                StripAllWeapons();
+                GiveAllPlayersZeus();
+                break;
+            case EventType.NoReload:
+                AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
+                ApplyNoReload();
+                break;
+            case EventType.GravitySwitch:
+                AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
+                StartGravitySwitch();
+                StartGravityMonitor();
+                break;
+            case EventType.SpeedRandomizer:
+                AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
+                RandomizeAllPlayersSpeed();
+                break;
+            case EventType.LastManStanding:
+                AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
+                StripAllWeapons();
+                GiveAllPlayersPistols();
+                break;
+            case EventType.PowerUpRound:
+                AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
+                SetAllPlayersHealth(Config.PowerUpHP);
+                GiveAllPlayersFullArmor();
+                GiveAllPlayersUnlimitedHE();
+                break;
+        }
+
+        _roundEventTriggered = true;
+        return HookResult.Continue;
+    }
+
+    private HookResult OnRoundEnd(EventRoundEnd @event, GameEventInfo info)
+    {
+        _gravitySwitchTimer?.Kill();
+        _flashbangSpamTimer?.Kill();
+        _gravityMonitorTimer?.Kill();
+        _speedEnforceTimer?.Kill();
+        _swapTimer?.Kill();
+        _playerSpeeds.Clear();
+
+        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage)
+            DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+
+        if (_activeEvent == EventType.FlashbangSpam)
+            DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+
+        _currentGravity = 800.0f;
+        SetGravity(800.0f);
+        ResetNoReload();
+
+        _activeEvent = EventType.None;
+        _roundEventTriggered = false;
+        return HookResult.Continue;
+    }
+
+    // player_hurt fires AFTER damage is applied in Source 2, so we use Post hook
+    // and directly manipulate pawn health for our effects
+    private HookResult OnPlayerHurt(EventPlayerHurt @event, GameEventInfo info)
+    {
+        var victim = @event.Userid;
+        var attacker = @event.Attacker;
+
+        if (attacker == null || !IsPlayerValid(attacker)) return HookResult.Continue;
+        if (victim == null || !victim.IsValid || victim.PlayerPawn.Value == null) return HookResult.Continue;
+
+        var pawn = victim.PlayerPawn.Value;
+
+        if (_activeEvent == EventType.HeadshotOnly && @event.Hitgroup != 1)
+        {
+            // Not a headshot — heal back the damage
+            int dmg = @event.DmgHealth;
+            pawn.Health = Math.Min(pawn.Health + dmg, 100);
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+        }
+
+        if (_activeEvent == EventType.DoubleDamage)
+        {
+            // Apply extra damage based on multiplier (multiplier-1 because original damage already applied)
+            int extraDamage = @event.DmgHealth * (Config.DoubleDamageMultiplier - 1);
+            pawn.Health = Math.Max(0, pawn.Health - extraDamage);
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+            if (pawn.Health <= 0)
+                pawn.CommitSuicide(false, true);
+        }
+
+        return HookResult.Continue;
+    }
+
+    private HookResult OnWeaponFire(EventWeaponFire @event, GameEventInfo info)
+    {
+        var player = @event.Userid;
+        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
+
+        if (_activeEvent == EventType.FlashbangSpam && _random.Next(0, 100) < 10)
+            GivePlayerFlashbang(player);
+
+        return HookResult.Continue;
+    }
+
+    private HookResult OnItemPurchase(EventItemPurchase @event, GameEventInfo info)
+    {
+        var player = @event.Userid;
+        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
+
+        // Only block purchases for events where it makes sense (not weapon-based events)
+        if (_activeEvent == EventType.LowGravity || _activeEvent == EventType.GravitySwitch ||
+            _activeEvent == EventType.FlashbangSpam ||
+            _activeEvent == EventType.SpeedRandomizer || _activeEvent == EventType.DoubleDamage ||
+            _activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.NoReload ||
+            _activeEvent == EventType.SwapTeams)
+        {
+            player.PrintToChat($" {ChatColors.Blue}[EVENT]{ChatColors.White} Purchases are disabled during this event!");
+            return HookResult.Handled;
+        }
+
+        return HookResult.Continue;
+    }
+
+    private static bool IsPlayerValid(CCSPlayerController player)
+    {
+        return player.IsValid && player.PawnIsAlive && player.PlayerPawn.Value != null;
+    }
+
+    private static bool IsAdmin(CCSPlayerController? player)
+    {
+        // Server console always has permission
+        if (player == null) return true;
+        return AdminManager.PlayerHasPermissions(player, "@css/root");
+    }
+
+    private static void AnnounceEvent(string title, string description)
+    {
+        Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} {title}");
+        Server.PrintToChatAll($" {ChatColors.Grey}» {description}");
+    }
+
+    private void StripAllWeapons()
+    {
+        foreach (var player in Utilities.GetPlayers())
+            if (IsPlayerValid(player)) player.RemoveWeapons();
+    }
+
+    private void GiveAllPlayersRandomWeapons()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            string weapon = RandomWeapons[_random.Next(0, RandomWeapons.Count)];
+            try { player.GiveNamedItem(weapon); }
+            catch (Exception ex) { Logger.LogWarning("[RandomRoundEvents] Failed to give weapon to {Player}: {Error}", player.PlayerName, ex.Message); }
+        }
+    }
+
+    private void GiveAllPlayersFlashbangs()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            // CS2 max is 2 flashbangs — only give up to that
+            int count = GetPlayerFlashbangCount(player);
+            for (int i = count; i < 2; i++)
+            {
+                try { player.GiveNamedItem("weapon_flashbang"); }
+                catch { break; }
+            }
+        }
+    }
+
+    private void StartFlashbangSpamRound()
+    {
+        _flashbangSpamTimer?.Kill();
+        _flashbangSpamTimer = AddTimer(Config.FlashbangRefillInterval, () =>
+        {
+            foreach (var player in Utilities.GetPlayers())
+                if (IsPlayerValid(player) && _random.Next(0, 100) < 30) GivePlayerFlashbang(player);
+        }, TimerFlags.REPEAT);
+    }
+
+    private void GivePlayerFlashbang(CCSPlayerController player)
+    {
+        if (!IsPlayerValid(player)) return;
+        if (GetPlayerFlashbangCount(player) >= 2) return;
+        try { player.GiveNamedItem("weapon_flashbang"); }
+        catch { /* ignore */ }
+    }
+
+    private static int GetPlayerFlashbangCount(CCSPlayerController player)
+    {
+        if (player.PlayerPawn.Value == null) return 2;
+        var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
+        if (weapons == null) return 2;
+        int count = 0;
+        foreach (var weapon in weapons)
+        {
+            if (weapon.Value != null && weapon.Value.DesignerName == "weapon_flashbang")
+                count++;
+        }
+        return count;
+    }
+
+    private void SetAllPlayersHealth(int health)
+    {
+        health = Math.Clamp(health, 1, 300);
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            var pawn = player.PlayerPawn.Value;
+            if (health > 100)
+                pawn.MaxHealth = health;
+            pawn.Health = health;
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+        }
+    }
+
+    private void GiveAllPlayersKnives()
+    {
+        foreach (var player in Utilities.GetPlayers())
+            if (IsPlayerValid(player)) player.GiveNamedItem("weapon_knife");
+    }
+
+    private void GiveAllPlayersZeus()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            player.GiveNamedItem("weapon_taser");
+        }
+    }
+
+    private void SwapRandomPlayers()
+    {
+        var ts = new List<CCSPlayerController>();
+        var cts = new List<CCSPlayerController>();
+
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid || !player.PawnIsAlive) continue;
+            if (player.Team == CsTeam.Terrorist) ts.Add(player);
+            else if (player.Team == CsTeam.CounterTerrorist) cts.Add(player);
+        }
+
+        if (ts.Count == 0 || cts.Count == 0) return;
+
+        var swappedT = ts[_random.Next(ts.Count)];
+        var swappedCT = cts[_random.Next(cts.Count)];
+
+        swappedT.SwitchTeam(CsTeam.CounterTerrorist);
+        swappedCT.SwitchTeam(CsTeam.Terrorist);
+
+        Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} {swappedT.PlayerName} is now a CT!");
+        Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} {swappedCT.PlayerName} is now a T!");
+    }
+
+    private void StartSwapTimer()
+    {
+        _swapTimer?.Kill();
+        _swapTimer = AddTimer((float)Config.SwapInterval, () =>
+        {
+            SwapRandomPlayers();
+        }, TimerFlags.REPEAT);
+    }
+
+    private void GiveAllPlayersPistols()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            string pistol = Pistols[_random.Next(0, Pistols.Count)];
+            player.GiveNamedItem(pistol);
+        }
+    }
+
+    private void GiveAllPlayersScout()
+    {
+        foreach (var player in Utilities.GetPlayers())
+            if (IsPlayerValid(player)) player.GiveNamedItem("weapon_ssg08");
+    }
+
+    private void GiveAllPlayersZeusOnly()
+    {
+        foreach (var player in Utilities.GetPlayers())
+            if (IsPlayerValid(player)) player.GiveNamedItem("weapon_taser");
+    }
+
+    private void GiveAllPlayersFullArmor()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            // item_assaultsuit gives kevlar + helmet
+            player.GiveNamedItem("item_assaultsuit");
+        }
+    }
+
+    private void GiveAllPlayersUnlimitedHE()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            for (int i = 0; i < 5; i++)
+            {
+                try { player.GiveNamedItem("weapon_hegrenade"); }
+                catch (Exception ex) { Logger.LogWarning("[RandomRoundEvents] Failed to give HE to {Player}: {Error}", player.PlayerName, ex.Message); }
+            }
+        }
+    }
+
+    private void RandomizeAllPlayersSpeed()
+    {
+        _playerSpeeds.Clear();
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            float speed = Config.SpeedMin + (float)(_random.NextDouble() * (Config.SpeedMax - Config.SpeedMin));
+            _playerSpeeds[player.Slot] = speed;
+            player.PlayerPawn.Value.VelocityModifier = speed;
+        }
+        // Engine resets VelocityModifier on weapon switch, landing, etc. — enforce it
+        _speedEnforceTimer?.Kill();
+        _speedEnforceTimer = AddTimer(0.25f, () =>
+        {
+            foreach (var player in Utilities.GetPlayers())
+            {
+                if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+                if (_playerSpeeds.TryGetValue(player.Slot, out float speed))
+                    player.PlayerPawn.Value.VelocityModifier = speed;
+            }
+        }, TimerFlags.REPEAT);
+    }
+
+    private void ApplyNoReload()
+    {
+        // Strip reserve ammo so players only have what's in the clip — no reloading
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
+            if (weapons == null) continue;
+            foreach (var weaponHandle in weapons)
+            {
+                var weapon = weaponHandle.Value;
+                if (weapon == null) continue;
+                weapon.ReserveAmmo[0] = 0;
+            }
+        }
+    }
+
+    private void SetGravity(float value)
+    {
+        _currentGravity = value;
+        var gravity = ConVar.Find("sv_gravity");
+        if (gravity != null)
+        {
+            try { gravity.SetValue(value); }
+            catch (Exception ex) { Logger.LogWarning("[RandomRoundEvents] Failed to set gravity: {Error}", ex.Message); }
+        }
+        else
+        {
+            Logger.LogWarning("[RandomRoundEvents] sv_gravity ConVar not found.");
+        }
+    }
+
+    private void StartGravityMonitor()
+    {
+        _gravityMonitorTimer?.Kill();
+        _gravityMonitorTimer = AddTimer(0.5f, () =>
+        {
+            var gravity = ConVar.Find("sv_gravity");
+            if (gravity == null) return;
+            float current = gravity.GetPrimitiveValue<float>();
+            if (Math.Abs(current - _currentGravity) > 0.01f)
+                SetGravity(_currentGravity);
+        }, TimerFlags.REPEAT);
+    }
+
+    private void ResetNoReload()
+    {
+        // No convar to reset — reserve ammo resets naturally on new round
+    }
+
+    private void StartGravitySwitch()
+    {
+        _gravitySwitchTimer?.Kill();
+        _gravitySwitchTimer = AddTimer(Config.GravitySwitchInterval, () =>
+        {
+            _currentGravity = _currentGravity == Config.GravitySwitchLow ? Config.GravitySwitchHigh : Config.GravitySwitchLow;
+            SetGravity(_currentGravity);
+        }, TimerFlags.REPEAT);
+    }
+
+    // Manual command handlers — admin only (@css/root)
+    private void OnLowGravityCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.LowGravity;
+        AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. No buying!");
+        SetGravity(Config.LowGravityValue);
+        StartGravityMonitor();
+        StripAllWeapons();
+        GiveAllPlayersScout();
+        GiveAllPlayersZeusOnly();
+    }
+
+    private void OnHeadshotOnlyCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.HeadshotOnly;
+        AnnounceEvent("Headshot Only Round", "Only headshots deal damage. Aim for the head!");
+        RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+    }
+
+    private void OnRandomWeaponCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.RandomWeapon;
+        AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
+        StripAllWeapons();
+        GiveAllPlayersRandomWeapons();
+    }
+
+    private void OnDoubleDamageCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.DoubleDamage;
+        AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
+        RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+    }
+
+    private void OnSwapTeamsCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.SwapTeams;
+        AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
+        SwapRandomPlayers();
+        StartSwapTimer();
+    }
+
+    private void OnFlashbangSpamCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.FlashbangSpam;
+        AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
+        StripAllWeapons();
+        SetAllPlayersHealth(Config.FlashbangStartHP);
+        GiveAllPlayersFlashbangs();
+        StartFlashbangSpamRound();
+        RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+    }
+
+    private void OnKnifeOnlyCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.KnifeOnly;
+        AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
+        StripAllWeapons();
+        GiveAllPlayersKnives();
+    }
+
+    private void OnZeusOnlyCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.ZeusOnly;
+        AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
+        StripAllWeapons();
+        GiveAllPlayersZeus();
+    }
+
+    private void OnNoReloadCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.NoReload;
+        AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
+        ApplyNoReload();
+    }
+
+    private void OnGravitySwitchCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.GravitySwitch;
+        AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
+        StartGravitySwitch();
+        StartGravityMonitor();
+    }
+
+    private void OnSpeedRandomizerCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.SpeedRandomizer;
+        AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
+        RandomizeAllPlayersSpeed();
+    }
+
+    private void OnLastManStandingCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.LastManStanding;
+        AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
+        StripAllWeapons();
+        GiveAllPlayersPistols();
+    }
+
+    private void OnPowerUpRoundCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.PowerUpRound;
+        AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
+        SetAllPlayersHealth(Config.PowerUpHP);
+        GiveAllPlayersFullArmor();
+        GiveAllPlayersUnlimitedHE();
+    }
+
+    private void OnResetCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _gravitySwitchTimer?.Kill();
+        _flashbangSpamTimer?.Kill();
+        _gravityMonitorTimer?.Kill();
+        _speedEnforceTimer?.Kill();
+        _swapTimer?.Kill();
+        _playerSpeeds.Clear();
+
+        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage)
+            DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+        if (_activeEvent == EventType.FlashbangSpam)
+            DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+
+        _currentGravity = 800.0f;
+        SetGravity(800.0f);
+        ResetNoReload();
+        _activeEvent = EventType.None;
+        _roundEventTriggered = false;
+
+        Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} All events reset.");
+    }
+}

@@ -1,0 +1,30 @@
+{
+  "Version": 1,
+  "Debug": false,
+
+  "EnableLowGravity": true,
+  "EnableHeadshotOnly": true,
+  "EnableRandomWeapon": true,
+  "EnableDoubleDamage": true,
+  "EnableSwapTeams": true,
+  "EnableFlashbangSpam": true,
+  "EnableKnifeOnly": true,
+  "EnableZeusOnly": true,
+  "EnableNoReload": true,
+  "EnableGravitySwitch": true,
+  "EnableSpeedRandomizer": true,
+  "EnableLastManStanding": true,
+  "EnablePowerUpRound": true,
+
+  "LowGravityValue": 400,
+  "GravitySwitchLow": 400,
+  "GravitySwitchHigh": 1200,
+  "GravitySwitchInterval": 5,
+  "SpeedMin": 0.5,
+  "SpeedMax": 2.0,
+  "SwapInterval": 30,
+  "FlashbangStartHP": 1,
+  "FlashbangRefillInterval": 3,
+  "PowerUpHP": 300,
+  "DoubleDamageMultiplier": 2
+}
