@@ -257,6 +257,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.FlashbangSpam:
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
                 StripAllWeapons();
+                GiveAllPlayersKnives();
                 SetAllPlayersHealth(Config.FlashbangStartHP);
                 GiveAllPlayersFlashbangs();
                 StartFlashbangSpamRound();
@@ -295,6 +296,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
                 StripAllWeapons();
+                GiveAllPlayersKnives();
                 SetAllPlayersHealth(Config.PowerUpHP);
                 GiveAllPlayersFullArmor();
                 GiveAllPlayersUnlimitedHE();
@@ -857,6 +859,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = EventType.FlashbangSpam;
         AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
         StripAllWeapons();
+        GiveAllPlayersKnives();
         SetAllPlayersHealth(Config.FlashbangStartHP);
         GiveAllPlayersFlashbangs();
         StartFlashbangSpamRound();
@@ -930,6 +933,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = EventType.PowerUpRound;
         AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
         StripAllWeapons();
+        GiveAllPlayersKnives();
         SetAllPlayersHealth(Config.PowerUpHP);
         GiveAllPlayersFullArmor();
         GiveAllPlayersUnlimitedHE();
