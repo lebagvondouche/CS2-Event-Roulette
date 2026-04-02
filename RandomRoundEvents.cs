@@ -622,7 +622,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             _playerSpeeds[player.Slot] = speed;
             player.PlayerPawn.Value.VelocityModifier = speed;
             int percent = (int)(speed * 100);
-            player.PrintToChat($" {ChatColors.Blue}[EVENT]{ChatColors.White} Your speed: {ChatColors.Green}{percent}%%");
+            player.PrintToChat($" {ChatColors.Blue}[EVENT]{ChatColors.White} Your speed: {ChatColors.Green}{percent}%");
         }
         // Engine resets VelocityModifier on weapon switch, landing, etc. — enforce it
         _speedEnforceTimer?.Kill();
