@@ -224,6 +224,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.DoubleDamage:
                 AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
+                GiveAllPlayersGlock();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
                 break;
             case EventType.SwapTeams:
@@ -560,6 +561,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             if (IsPlayerValid(player)) player.GiveNamedItem("weapon_ssg08");
     }
 
+    private static void GiveAllPlayersGlock()
+    {
+        foreach (var player in Utilities.GetPlayers())
+            if (IsPlayerValid(player)) player.GiveNamedItem("weapon_glock");
+    }
+
     private void GiveAllPlayersZeusOnly()
     {
         foreach (var player in Utilities.GetPlayers())
@@ -725,6 +732,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         _activeEvent = EventType.DoubleDamage;
         AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
+        GiveAllPlayersGlock();
         RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
     }
 
