@@ -98,6 +98,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     }
 
     private EventType _activeEvent = EventType.None;
+    private EventType _forcedEvent = EventType.None;
     private bool _chaosDoubleDamage = false;
 
     public void OnConfigParsed(RandomRoundEventsConfig config)
@@ -207,9 +208,14 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             return HookResult.Continue;
         }
 
-        // Roll for chaos round first
+        // Use forced event if set by admin command, otherwise pick randomly
         EventType selectedEvent;
-        if (Config.ChaosRoundChance > 0 && _random.Next(0, 100) < Config.ChaosRoundChance)
+        if (_forcedEvent != EventType.None)
+        {
+            selectedEvent = _forcedEvent;
+            _forcedEvent = EventType.None;
+        }
+        else if (Config.ChaosRoundChance > 0 && _random.Next(0, 100) < Config.ChaosRoundChance)
             selectedEvent = EventType.ChaosRound;
         else
             selectedEvent = enabledEvents[_random.Next(0, enabledEvents.Count)];
@@ -803,171 +809,28 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     }
 
     // Manual command handlers — admin only (@css/root)
-    private void OnLowGravityCommand(CCSPlayerController? player, CommandInfo command)
+    // Sets forced event and restarts round so OnRoundStart applies it cleanly
+    private void ForceEvent(CCSPlayerController? player, EventType eventType)
     {
         if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.LowGravity;
-        DisableBuying();
-        AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. Perfect accuracy!");
-        SetGravity(Config.LowGravityValue);
-        SetNospread(true);
-        StartGravityMonitor();
-        StripAllWeapons();
-        GiveAllPlayersScout();
-        GiveAllPlayersZeusOnly();
-        Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
+        _forcedEvent = eventType;
+        Server.ExecuteCommand("mp_restartgame 1");
     }
 
-    private void OnHeadshotOnlyCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.HeadshotOnly;
-        DisableBuying();
-        AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
-        StripAllWeapons();
-        GiveAllPlayersKnives();
-        GiveAllPlayersDeagle();
-        RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-    }
-
-    private void OnRandomWeaponCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.RandomWeapon;
-        DisableBuying();
-        AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
-        StripAllWeapons();
-        GiveAllPlayersRandomWeapons();
-    }
-
-    private void OnDoubleDamageCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.DoubleDamage;
-        DisableBuying();
-        AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
-        GiveAllPlayersGlock();
-        RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-    }
-
-    private void OnSwapTeamsCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.SwapTeams;
-        AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
-        StartSwapTimer();
-    }
-
-    private void OnFlashbangSpamCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.FlashbangSpam;
-        DisableBuying();
-        AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
-        StripAllWeapons();
-        GiveAllPlayersKnives();
-        SetAllPlayersHealth(Config.FlashbangStartHP);
-        GiveAllPlayersFlashbangs();
-        StartFlashbangSpamRound();
-        RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-    }
-
-    private void OnKnifeOnlyCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.KnifeOnly;
-        DisableBuying();
-        AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
-        StripAllWeapons();
-        GiveAllPlayersKnives();
-    }
-
-    private void OnZeusOnlyCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.ZeusOnly;
-        DisableBuying();
-        AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
-        StripAllWeapons();
-        GiveAllPlayersZeus();
-        Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
-    }
-
-    private void OnNoReloadCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.NoReload;
-        DisableBuying();
-        AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
-        ApplyNoReload();
-        RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
-    }
-
-    private void OnGravitySwitchCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.GravitySwitch;
-        DisableBuying();
-        AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
-        StartGravitySwitch();
-        StartGravityMonitor();
-    }
-
-    private void OnSpeedRandomizerCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.SpeedRandomizer;
-        AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
-        GiveAllPlayersKnives();
-        GiveAllPlayersGlock();
-        RandomizeAllPlayersSpeed();
-    }
-
-    private void OnLastManStandingCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.LastManStanding;
-        DisableBuying();
-        AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
-        StripAllWeapons();
-        GiveAllPlayersPistols();
-    }
-
-    private void OnPowerUpRoundCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.PowerUpRound;
-        DisableBuying();
-        AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
-        StripAllWeapons();
-        GiveAllPlayersKnives();
-        SetAllPlayersHealth(Config.PowerUpHP);
-        GiveAllPlayersFullArmor();
-        GiveAllPlayersUnlimitedHE();
-        RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
-    }
-
-    private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command)
-    {
-        if (!IsAdmin(player)) return;
-        ResetAllState();
-        _activeEvent = EventType.ChaosRound;
-        DisableBuying();
-        ApplyChaosRound();
-    }
+    private void OnLowGravityCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.LowGravity);
+    private void OnHeadshotOnlyCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.HeadshotOnly);
+    private void OnRandomWeaponCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.RandomWeapon);
+    private void OnDoubleDamageCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.DoubleDamage);
+    private void OnSwapTeamsCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.SwapTeams);
+    private void OnFlashbangSpamCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.FlashbangSpam);
+    private void OnKnifeOnlyCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.KnifeOnly);
+    private void OnZeusOnlyCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ZeusOnly);
+    private void OnNoReloadCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.NoReload);
+    private void OnGravitySwitchCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.GravitySwitch);
+    private void OnSpeedRandomizerCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.SpeedRandomizer);
+    private void OnLastManStandingCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.LastManStanding);
+    private void OnPowerUpRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.PowerUpRound);
+    private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ChaosRound);
 
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
     {
