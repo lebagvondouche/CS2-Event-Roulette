@@ -223,7 +223,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.SwapTeams:
                 AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
-                SwapRandomPlayers();
                 StartSwapTimer();
                 break;
             case EventType.FlashbangSpam:
@@ -685,7 +684,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         _activeEvent = EventType.SwapTeams;
         AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
-        SwapRandomPlayers();
         StartSwapTimer();
     }
 
