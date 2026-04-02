@@ -246,6 +246,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.NoReload:
                 AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
                 ApplyNoReload();
+                RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
                 break;
             case EventType.GravitySwitch:
                 AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
@@ -292,6 +293,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         if (_activeEvent == EventType.PowerUpRound)
             DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
+
+        if (_activeEvent == EventType.NoReload)
+            DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
 
         _currentGravity = 800.0f;
         SetGravity(800.0f);
@@ -379,6 +383,28 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 count++;
         }
         return count;
+    }
+
+    private HookResult OnItemPickup(EventItemPickup @event, GameEventInfo info)
+    {
+        var player = @event.Userid;
+        if (player == null || !IsPlayerValid(player) || player.PlayerPawn.Value == null) return HookResult.Continue;
+
+        // Strip reserve ammo on any weapon pickup during No Reload round
+        AddTimer(0.1f, () =>
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) return;
+            var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
+            if (weapons == null) return;
+            foreach (var weaponHandle in weapons)
+            {
+                var weapon = weaponHandle.Value;
+                if (weapon == null) continue;
+                weapon.ReserveAmmo[0] = 0;
+            }
+        });
+
+        return HookResult.Continue;
     }
 
     private HookResult OnItemPurchase(EventItemPurchase @event, GameEventInfo info)
@@ -748,6 +774,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = EventType.NoReload;
         AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
         ApplyNoReload();
+        RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
     }
 
     private void OnGravitySwitchCommand(CCSPlayerController? player, CommandInfo command)
@@ -827,6 +854,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
         if (_activeEvent == EventType.PowerUpRound)
             DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
+        if (_activeEvent == EventType.NoReload)
+            DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
 
         _currentGravity = 800.0f;
         SetGravity(800.0f);
