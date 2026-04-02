@@ -1,43 +1,47 @@
-# RandomRoundEvents Plugin for Counter-Strike 2
+# CS2 Event Roulette
 
-A Counter-Strike 2 plugin that triggers random events during rounds to add variety and excitement to gameplay.
+A Counter-Strike 2 plugin that triggers random events each round. Built with CounterStrikeSharp.
 
 ## Features
 
-The plugin includes the following events:
+14 events, each announced with a description in chat:
 
-- **Low Gravity**: Low gravity with Scout + Zeus only. No buying.
-- **Headshot Only**: Only headshots deal damage, body shots are ignored.
-- **Random Weapon**: All players are stripped of weapons and given a random one.
-- **Double Damage**: All damage is multiplied (configurable). 
-- **Swap Teams**: A random player from each team swaps sides every 30 seconds (configurable).
-- **Flashbang Spam**: Stripped of weapons, low HP (configurable), flashbangs only.
-- **Knife-Only**: All players are stripped of weapons and given only a knife.
-- **Zeus-Only**: All players are stripped of weapons and given only a Zeus taser.
-- **No Reload**: One magazine only, no reserve ammo.
-- **Gravity Switch**: Gravity alternates between low and high at a configurable interval.
-- **Speed Randomizer**: Each player gets a random movement speed (configurable range).
-- **Last Man Standing**: All players are stripped of weapons and given a random pistol.
-- **Power-Up Round**: High HP (configurable), full armor + helmet, and HE grenades.
+- **Low Gravity** — Scout + Zeus, perfect accuracy, low gravity. No buying.
+- **Juan Deag** — Knife + Deagle, headshots only. Body shots deal no damage.
+- **Random Weapon** — Everyone gets a random weapon.
+- **Double Damage** — Glock only, all damage multiplied (configurable).
+- **Team Swap** — A random pair of human players swaps teams every 30 seconds (configurable).
+- **Flashbang Spam** — 1 HP (configurable), flashbangs only, auto-refill.
+- **Knife-Only** — Pure melee combat.
+- **Zeus-Only** — Zeus taser only, no knife.
+- **No Reload** — One magazine, no reserve ammo. Every bullet counts.
+- **Gravity Switch** — Gravity flips between low and high at a configurable interval.
+- **Speed Randomizer** — Each player gets a random speed multiplier, shown in chat.
+- **Last Man Standing** — Random pistol only.
+- **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE grenades.
+- **Chaos Round** — Random mix of gravity, speed, damage, accuracy, and weapon. Every chaos round is different.
+
+All events:
+- Block all purchases (guns, grenades, armor, zeus)
+- Strip weapons where needed (no carryover between rounds)
+- Clean up fully on round end (gravity, speed, nospread, timers, handlers)
+- Skip during warmup
+- Announce with a title and description in chat
+
+## Admin Menu
+
+Type `!rre_menu` in chat (requires `@css/root` admin) to open an in-game menu to pick any event.
 
 ## Installation
 
-1. **Download the Plugin:**
-   - Ensure you have the latest version of the plugin from the releases section.
-
-2. **Install CounterStrikeSharp:**
-   - Follow the [CounterStrikeSharp installation guide](https://docs.cssharp.dev/docs/guides/getting-started.html) to set up the framework.
-
-3. **Add the Plugin:**
-   - Place the published `RandomRoundEvents` folder into the `addons/counterstrikesharp/plugins/` directory of your CS2 server.
-   - The `RandomRoundEvents.json` config will be auto-generated on first load in `addons/counterstrikesharp/configs/plugins/RandomRoundEvents/`.
-
-4. **Restart the Server:**
-   - Restart your CS2 server to load the plugin.
+1. Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html) + Metamod on your CS2 server.
+2. Download the latest release from the [Releases page](https://github.com/lebagvondouche/CS2-Event-Roulette/releases).
+3. Extract the `RandomRoundEvents` folder into `addons/counterstrikesharp/plugins/`.
+4. Restart the server. Config auto-generates on first load.
 
 ## Configuration
 
-The plugin can be configured using the `RandomRoundEvents.json` file. Here is an example configuration:
+Edit `addons/counterstrikesharp/configs/plugins/RandomRoundEvents/RandomRoundEvents.json`:
 
 ```json
 {
@@ -68,115 +72,74 @@ The plugin can be configured using the `RandomRoundEvents.json` file. Here is an
   "FlashbangStartHP": 1,
   "FlashbangRefillInterval": 3,
   "PowerUpHP": 300,
-  "DoubleDamageMultiplier": 2
+  "DoubleDamageMultiplier": 2,
+  "ChaosRoundChance": 15
 }
 ```
 
-### Configuration Options
+### Event Toggles
 
-#### Event Toggles
+Set any `Enable*` option to `false` to remove that event from the random pool.
 
-- **Version**: Configuration version (do not modify).
-- **Debug**: Enable debug logging.
-- **EnableLowGravity**: Enable the Low Gravity event.
-- **EnableHeadshotOnly**: Enable the Headshot Only event.
-- **EnableRandomWeapon**: Enable the Random Weapon event.
-- **EnableDoubleDamage**: Enable the Double Damage event.
-- **EnableSwapTeams**: Enable the Swap Teams event.
-- **EnableFlashbangSpam**: Enable the Flashbang Spam event.
-- **EnableKnifeOnly**: Enable the Knife-Only event.
-- **EnableZeusOnly**: Enable the Zeus-Only event.
-- **EnableNoReload**: Enable the No Reload event.
-- **EnableGravitySwitch**: Enable the Gravity Switch event.
-- **EnableSpeedRandomizer**: Enable the Speed Randomizer event.
-- **EnableLastManStanding**: Enable the Last Man Standing event.
-- **EnablePowerUpRound**: Enable the Power-Up Round event.
+### Event Settings
 
-#### Event Settings
+| Setting | Default | Range | Description |
+|---------|---------|-------|-------------|
+| LowGravityValue | 400 | 50–800 | Gravity for Low Gravity round |
+| GravitySwitchLow | 400 | 50–800 | Low gravity for Gravity Switch |
+| GravitySwitchHigh | 1200 | 800–2000 | High gravity for Gravity Switch |
+| GravitySwitchInterval | 5 | 1–60 | Seconds between gravity flips |
+| SpeedMin | 0.5 | 0.1–3.0 | Minimum speed multiplier |
+| SpeedMax | 2.0 | SpeedMin–5.0 | Maximum speed multiplier |
+| SwapInterval | 30 | 5–120 | Seconds between team swaps |
+| FlashbangStartHP | 1 | 1–100 | Starting HP for Flashbang round |
+| FlashbangRefillInterval | 3 | 1–30 | Seconds between flashbang refills |
+| PowerUpHP | 300 | 100–1000 | HP for Power-Up round |
+| DoubleDamageMultiplier | 2 | 2–10 | Damage multiplier |
+| ChaosRoundChance | 15 | 0–100 | Percentage chance of Chaos Round (0 to disable) |
 
-- **LowGravityValue**: Gravity value for Low Gravity round (default: 400, range: 50–800).
-- **GravitySwitchLow**: Low gravity value for Gravity Switch (default: 400).
-- **GravitySwitchHigh**: High gravity value for Gravity Switch (default: 1200).
-- **GravitySwitchInterval**: Seconds between gravity flips (default: 5, range: 1–60).
-- **SpeedMin**: Minimum speed multiplier (default: 0.5, range: 0.1–3.0).
-- **SpeedMax**: Maximum speed multiplier (default: 2.0, range: SpeedMin–5.0).
-- **SwapInterval**: Seconds between team swaps (default: 30, range: 5–120).
-- **FlashbangStartHP**: Starting HP for Flashbang Spam round (default: 1, range: 1–100).
-- **FlashbangRefillInterval**: Seconds between flashbang refills (default: 3, range: 1–30).
-- **PowerUpHP**: HP for Power-Up round (default: 300, range: 100–1000).
-- **DoubleDamageMultiplier**: Damage multiplier (default: 2, range: 2–10).
+## Commands
 
-## Usage
+All commands require `@css/root` admin permission. Use in chat with `!` or `/` prefix.
 
-Once installed and configured, the plugin will automatically trigger a random event at the start of each round. The active event will be announced in the chat.
-
-Purchases are automatically blocked during most events to prevent players from overriding the event loadout. Events that give specific weapons (Knife-Only, Zeus-Only, Last Man Standing, Power-Up) allow the round to play out with the given gear.
-
-### Manual Event Triggers
-
-All manual commands require `@css/root` admin permission. You can trigger specific events using the following console or chat commands (chat commands use `!rre_` or `/rre_` prefix):
-
-- `css_rre_lowgravity`: Trigger Low Gravity event.
-- `css_rre_headshotonly`: Trigger Headshot Only event.
-- `css_rre_randomweapon`: Trigger Random Weapon event.
-- `css_rre_doubledamage`: Trigger Double Damage event.
-- `css_rre_swapteams`: Trigger Swap Teams event.
-- `css_rre_flashbang`: Trigger Flashbang Spam event.
-- `css_rre_knife`: Trigger Knife-Only event.
-- `css_rre_zeus`: Trigger Zeus-Only event.
-- `css_rre_noreload`: Trigger No Reload event.
-- `css_rre_gravityswitch`: Trigger Gravity Switch event.
-- `css_rre_speed`: Trigger Speed Randomizer event.
-- `css_rre_lastman`: Trigger Last Man Standing event.
-- `css_rre_powerup`: Trigger Power-Up Round event.
-- `css_rre_reset`: Reset all events.
+| Command | Description |
+|---------|-------------|
+| `!rre_menu` | Open event selection menu |
+| `!rre_lowgravity` | Low Gravity |
+| `!rre_headshotonly` | Juan Deag |
+| `!rre_randomweapon` | Random Weapon |
+| `!rre_doubledamage` | Double Damage |
+| `!rre_swapteams` | Team Swap |
+| `!rre_flashbang` | Flashbang Spam |
+| `!rre_knife` | Knife-Only |
+| `!rre_zeus` | Zeus-Only |
+| `!rre_noreload` | No Reload |
+| `!rre_gravityswitch` | Gravity Switch |
+| `!rre_speed` | Speed Randomizer |
+| `!rre_lastman` | Last Man Standing |
+| `!rre_powerup` | Power-Up Round |
+| `!rre_chaos` | Chaos Round |
+| `!rre_reset` | Reset all events |
 
 ## Building from Source
 
-### Requirements
+Requires [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
 
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+```bash
+git clone https://github.com/lebagvondouche/CS2-Event-Roulette.git
+cd CS2-Event-Roulette
+dotnet restore
+dotnet publish --configuration Release --output bin/publish
+```
 
-### Steps
-
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/your-repository/RandomRoundEvents.git
-   cd RandomRoundEvents
-   ```
-
-2. **Restore Dependencies:**
-   ```bash
-   dotnet restore
-   ```
-
-3. **Build the Plugin:**
-   ```bash
-   dotnet build --configuration Release
-   ```
-
-4. **Publish the Plugin:**
-   ```bash
-   dotnet publish --configuration Release --output bin/publish
-   ```
-
-5. **Copy the Output:**
-   - Copy the published `RandomRoundEvents` folder to your server's `addons/counterstrikesharp/plugins/` directory.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request for any bugs, features, or improvements.
+Copy the `bin/publish/RandomRoundEvents` folder to your server's `addons/counterstrikesharp/plugins/` directory.
 
 ## License
 
-This project is licensed under the CC BY-NC 4.0 License. See the [LICENSE](../LICENSE) file for details.
-
-## Support
-
-For support or questions, please open an issue on the GitHub repository.
+CC BY-NC 4.0 — free to fork and modify, no commercial use. See [LICENSE](../LICENSE).
 
 ---
 
 **Author:** Martin Persson
-**Version:** 1.2
+**Version:** 1.3
 **License:** CC BY-NC 4.0
