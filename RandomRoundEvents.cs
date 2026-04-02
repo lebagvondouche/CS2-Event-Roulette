@@ -214,6 +214,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         _activeEvent = selectedEvent;
         Logger.LogInformation("[RandomRoundEvents] Selected event: {Event}", selectedEvent);
+        ResetAllState();
+        _activeEvent = selectedEvent;
         DisableBuying();
 
         switch (selectedEvent)
@@ -305,33 +307,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private HookResult OnRoundEnd(EventRoundEnd @event, GameEventInfo info)
     {
-        _gravitySwitchTimer?.Kill();
-        _flashbangSpamTimer?.Kill();
-        _gravityMonitorTimer?.Kill();
-        _speedEnforceTimer?.Kill();
-        _swapTimer?.Kill();
-        _playerSpeeds.Clear();
-
-        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _activeEvent == EventType.ChaosRound)
-            DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-
-        if (_activeEvent == EventType.FlashbangSpam)
-            DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-
-        if (_activeEvent == EventType.PowerUpRound)
-            DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
-
-        if (_activeEvent == EventType.NoReload)
-            DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
-
-        _chaosDoubleDamage = false;
-        _currentGravity = 800.0f;
-        SetGravity(800.0f);
-        SetNospread(false);
-        EnableBuying();
-        ResetNoReload();
-
-        _activeEvent = EventType.None;
+        ResetAllState();
         _roundEventTriggered = false;
         return HookResult.Continue;
     }
@@ -452,6 +428,33 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         // Server console always has permission
         if (player == null) return true;
         return AdminManager.PlayerHasPermissions(player, "@css/root");
+    }
+
+    private void ResetAllState()
+    {
+        _gravitySwitchTimer?.Kill();
+        _flashbangSpamTimer?.Kill();
+        _gravityMonitorTimer?.Kill();
+        _speedEnforceTimer?.Kill();
+        _swapTimer?.Kill();
+        _playerSpeeds.Clear();
+
+        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _activeEvent == EventType.ChaosRound)
+            DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+        if (_activeEvent == EventType.FlashbangSpam)
+            DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+        if (_activeEvent == EventType.PowerUpRound)
+            DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
+        if (_activeEvent == EventType.NoReload)
+            DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
+
+        _chaosDoubleDamage = false;
+        _currentGravity = 800.0f;
+        SetGravity(800.0f);
+        SetNospread(false);
+        EnableBuying();
+        ResetNoReload();
+        _activeEvent = EventType.None;
     }
 
     private static void AnnounceEvent(string title, string description)
@@ -792,6 +795,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnLowGravityCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.LowGravity;
         AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. Perfect accuracy!");
         SetGravity(Config.LowGravityValue);
@@ -805,6 +809,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnHeadshotOnlyCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.HeadshotOnly;
         AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
         StripAllWeapons();
@@ -816,6 +821,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnRandomWeaponCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.RandomWeapon;
         AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
         StripAllWeapons();
@@ -825,6 +831,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnDoubleDamageCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.DoubleDamage;
         AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
         GiveAllPlayersGlock();
@@ -834,6 +841,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnSwapTeamsCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.SwapTeams;
         AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
         StartSwapTimer();
@@ -842,6 +850,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnFlashbangSpamCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.FlashbangSpam;
         AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
         StripAllWeapons();
@@ -854,6 +863,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnKnifeOnlyCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.KnifeOnly;
         AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
         StripAllWeapons();
@@ -863,6 +873,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnZeusOnlyCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.ZeusOnly;
         AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
         StripAllWeapons();
@@ -872,6 +883,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnNoReloadCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.NoReload;
         AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
         ApplyNoReload();
@@ -881,6 +893,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnGravitySwitchCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.GravitySwitch;
         AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
         StartGravitySwitch();
@@ -890,6 +903,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnSpeedRandomizerCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.SpeedRandomizer;
         AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
         RandomizeAllPlayersSpeed();
@@ -898,6 +912,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnLastManStandingCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.LastManStanding;
         AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
         StripAllWeapons();
@@ -907,6 +922,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnPowerUpRoundCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.PowerUpRound;
         AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
         StripAllWeapons();
@@ -919,6 +935,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
+        ResetAllState();
         _activeEvent = EventType.ChaosRound;
         DisableBuying();
         ApplyChaosRound();
@@ -951,31 +968,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnResetCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (!IsAdmin(player)) return;
-        _gravitySwitchTimer?.Kill();
-        _flashbangSpamTimer?.Kill();
-        _gravityMonitorTimer?.Kill();
-        _speedEnforceTimer?.Kill();
-        _swapTimer?.Kill();
-        _playerSpeeds.Clear();
-
-        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _activeEvent == EventType.ChaosRound)
-            DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-        if (_activeEvent == EventType.FlashbangSpam)
-            DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-        if (_activeEvent == EventType.PowerUpRound)
-            DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
-        if (_activeEvent == EventType.NoReload)
-            DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
-
-        _chaosDoubleDamage = false;
-        _currentGravity = 800.0f;
-        SetGravity(800.0f);
-        SetNospread(false);
-        EnableBuying();
-        ResetNoReload();
-        _activeEvent = EventType.None;
+        ResetAllState();
         _roundEventTriggered = false;
-
         Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} All events reset.");
     }
 }
