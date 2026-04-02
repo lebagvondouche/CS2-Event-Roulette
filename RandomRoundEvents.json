@@ -20,7 +20,7 @@
   "GravitySwitchLow": 400,
   "GravitySwitchHigh": 1200,
   "GravitySwitchInterval": 5,
-  "SpeedMin": 0.5,
+  "SpeedMin": 0.1,
   "SpeedMax": 2.0,
   "SwapInterval": 30,
   "FlashbangStartHP": 1,
