@@ -216,7 +216,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (_forcedEvent != EventType.None)
         {
             selectedEvent = _forcedEvent;
-            _forcedEvent = EventType.None;
+            // Don't clear _forcedEvent yet — mp_restartgame can fire multiple cycles
         }
         else if (Config.ChaosRoundChance > 0 && _random.Next(0, 100) < Config.ChaosRoundChance)
             selectedEvent = EventType.ChaosRound;
@@ -324,6 +324,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         }
 
         _roundEventTriggered = true;
+        _forcedEvent = EventType.None;
         return HookResult.Continue;
     }
 
@@ -817,6 +818,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     {
         if (!IsAdmin(player)) return;
         _forcedEvent = eventType;
+        _roundEventTriggered = false;
+        Logger.LogInformation("[RandomRoundEvents] Forcing event: {Event}", eventType);
         Server.ExecuteCommand("mp_restartgame 1");
     }
 
