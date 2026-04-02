@@ -201,6 +201,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         EventType selectedEvent = enabledEvents[_random.Next(0, enabledEvents.Count)];
         _activeEvent = selectedEvent;
         Logger.LogInformation("[RandomRoundEvents] Selected event: {Event}", selectedEvent);
+        DisableBuying();
 
         switch (selectedEvent)
         {
@@ -305,6 +306,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _currentGravity = 800.0f;
         SetGravity(800.0f);
         SetNospread(false);
+        EnableBuying();
         ResetNoReload();
 
         _activeEvent = EventType.None;
@@ -414,16 +416,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private HookResult OnItemPurchase(EventItemPurchase @event, GameEventInfo info)
     {
-        var player = @event.Userid;
-        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
-
-        // Block all purchases during any active event
-        if (_activeEvent != EventType.None)
-        {
-            player.PrintToChat($" {ChatColors.Blue}[EVENT]{ChatColors.White} Purchases are disabled during this event!");
-            return HookResult.Handled;
-        }
-
+        // Purchase blocking is handled via convars (DisableBuying/EnableBuying)
         return HookResult.Continue;
     }
 
@@ -682,6 +675,16 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             nospread.SetValue(enabled ? 1 : 0);
     }
 
+    private static void DisableBuying()
+    {
+        Server.ExecuteCommand("mp_buy_allow_guns 0; mp_buy_allow_grenades 0");
+    }
+
+    private static void EnableBuying()
+    {
+        Server.ExecuteCommand("mp_buy_allow_guns 255; mp_buy_allow_grenades 1");
+    }
+
     private void StartGravitySwitch()
     {
         _gravitySwitchTimer?.Kill();
@@ -861,6 +864,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _currentGravity = 800.0f;
         SetGravity(800.0f);
         SetNospread(false);
+        EnableBuying();
         ResetNoReload();
         _activeEvent = EventType.None;
         _roundEventTriggered = false;
