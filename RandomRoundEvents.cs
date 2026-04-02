@@ -479,7 +479,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         foreach (var player in Utilities.GetPlayers())
         {
-            if (!player.IsValid || !player.PawnIsAlive) continue;
+            if (!player.IsValid || !player.PawnIsAlive || player.IsBot) continue;
             if (player.Team == CsTeam.Terrorist) ts.Add(player);
             else if (player.Team == CsTeam.CounterTerrorist) cts.Add(player);
         }
