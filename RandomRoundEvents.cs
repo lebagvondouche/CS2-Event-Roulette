@@ -217,6 +217,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.HeadshotOnly:
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
                 StripAllWeapons();
+                GiveAllPlayersKnives();
                 GiveAllPlayersDeagle();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
                 break;
@@ -731,6 +732,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = EventType.HeadshotOnly;
         AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
         StripAllWeapons();
+        GiveAllPlayersKnives();
         GiveAllPlayersDeagle();
         RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
     }
