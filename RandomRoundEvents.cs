@@ -242,21 +242,21 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 SetNospread(true);
                 StartGravityMonitor();
                 Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersScout(); GiveAllPlayersZeusOnly(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersScout(); GiveAllPlayersZeusOnly(); });
                 break;
             case EventType.HeadshotOnly:
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersDeagle(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersDeagle(); });
                 break;
             case EventType.RandomWeapon:
                 AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersRandomWeapons(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersRandomWeapons(); });
                 break;
             case EventType.DoubleDamage:
                 AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersGlock(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersGlock(); });
                 break;
             case EventType.SwapTeams:
                 AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
@@ -266,16 +266,16 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
                 StartFlashbangSpamRound();
                 RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs(); });
                 break;
             case EventType.KnifeOnly:
                 AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersKnives(); });
                 break;
             case EventType.ZeusOnly:
                 AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
                 Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersZeus(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersZeus(); });
                 break;
             case EventType.NoReload:
                 AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
@@ -289,19 +289,19 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.SpeedRandomizer:
                 AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
-                AddTimer(0.1f, () => { GiveAllPlayersKnives(); GiveAllPlayersGlock(); RandomizeAllPlayersSpeed(); });
+                AddTimer(0.5f, () => { GiveAllPlayersKnives(); GiveAllPlayersGlock(); RandomizeAllPlayersSpeed(); });
                 break;
             case EventType.LastManStanding:
                 AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersPistols(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersPistols(); });
                 break;
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
                 RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
-                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); });
+                AddTimer(0.5f, () => { StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); });
                 break;
             case EventType.ChaosRound:
-                AddTimer(0.1f, () => { ApplyChaosRound(); });
+                AddTimer(0.5f, () => { ApplyChaosRound(); });
                 break;
         }
 
@@ -398,7 +398,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (player == null || !IsPlayerValid(player) || player.PlayerPawn.Value == null) return HookResult.Continue;
 
         // Strip reserve ammo on any weapon pickup during No Reload round
-        AddTimer(0.1f, () =>
+        AddTimer(0.5f, () =>
         {
             if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) return;
             var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
@@ -802,7 +802,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _forcedEvent = eventType;
         _roundEventTriggered = false;
         Logger.LogInformation("[RandomRoundEvents] Forcing event: {Event}", eventType);
-        Server.ExecuteCommand("mp_restartgame 1");
+        Server.ExecuteCommand("mp_restartgame 2");
     }
 
     private void OnLowGravityCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.LowGravity);
