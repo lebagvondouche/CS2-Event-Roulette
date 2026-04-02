@@ -291,6 +291,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.SpeedRandomizer:
                 AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
+                GiveAllPlayersKnives();
+                GiveAllPlayersGlock();
                 RandomizeAllPlayersSpeed();
                 break;
             case EventType.LastManStanding:
@@ -927,6 +929,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         ResetAllState();
         _activeEvent = EventType.SpeedRandomizer;
         AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
+        GiveAllPlayersKnives();
+        GiveAllPlayersGlock();
         RandomizeAllPlayersSpeed();
     }
 
