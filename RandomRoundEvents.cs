@@ -136,7 +136,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         RegisterEventHandler<EventRoundStart>(OnRoundStart);
         RegisterEventHandler<EventRoundEnd>(OnRoundEnd);
-        RegisterEventHandler<EventItemPurchase>(OnItemPurchase, HookMode.Pre);
 
         AddCommand("css_rre_lowgravity", "Trigger Low Gravity event", OnLowGravityCommand);
         AddCommand("css_rre_headshotonly", "Trigger Headshot Only event", OnHeadshotOnlyCommand);
@@ -245,7 +244,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 SetNospread(true);
                 StartGravityMonitor();
                 Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
-                StripAllWeapons(); GiveAllPlayersScout(); GiveAllPlayersZeusOnly();
+                StripAllWeapons(); GiveAllPlayersScout(); GiveAllPlayersZeus();
                 break;
             case EventType.HeadshotOnly:
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
@@ -418,12 +417,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         return HookResult.Continue;
     }
 
-    private HookResult OnItemPurchase(EventItemPurchase @event, GameEventInfo info)
-    {
-        // Purchase blocking is handled via convars (DisableBuying/EnableBuying)
-        return HookResult.Continue;
-    }
-
     private static bool IsPlayerValid(CCSPlayerController player)
     {
         return player.IsValid && player.PawnIsAlive && player.PlayerPawn.Value != null;
@@ -459,7 +452,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetNospread(false);
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
-        ResetNoReload();
+        ResetMaxHealth();
         _activeEvent = EventType.None;
     }
 
@@ -609,12 +602,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             if (IsPlayerValid(player)) player.GiveNamedItem("weapon_deagle");
     }
 
-    private void GiveAllPlayersZeusOnly()
-    {
-        foreach (var player in Utilities.GetPlayers())
-            if (IsPlayerValid(player)) player.GiveNamedItem("weapon_taser");
-    }
-
     private void GiveAllPlayersFullArmor()
     {
         foreach (var player in Utilities.GetPlayers())
@@ -686,6 +673,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         var mods = new List<string>();
 
         StripAllWeapons();
+        GiveAllPlayersKnives();
 
         // 1. Gravity: 40% low, 30% switching, 30% normal
         int gravRoll = _random.Next(100);
@@ -765,9 +753,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         }, TimerFlags.REPEAT);
     }
 
-    private void ResetNoReload()
+    private void ResetMaxHealth()
     {
-        // No convar to reset — reserve ammo resets naturally on new round
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            player.PlayerPawn.Value.MaxHealth = 100;
+        }
     }
 
     private static void SetNospread(bool enabled)
