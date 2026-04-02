@@ -354,10 +354,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         if (@event.Weapon == "weapon_hegrenade")
         {
-            // Give a new HE after a short delay so the thrown one doesn't conflict
             AddTimer(0.5f, () =>
             {
-                if (IsPlayerValid(player))
+                if (IsPlayerValid(player) && GetPlayerGrenadeCount(player, "weapon_hegrenade") < 1)
                 {
                     try { player.GiveNamedItem("weapon_hegrenade"); }
                     catch { /* ignore */ }
@@ -366,6 +365,20 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         }
 
         return HookResult.Continue;
+    }
+
+    private static int GetPlayerGrenadeCount(CCSPlayerController player, string grenadeName)
+    {
+        if (player.PlayerPawn.Value == null) return 1;
+        var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
+        if (weapons == null) return 1;
+        int count = 0;
+        foreach (var weapon in weapons)
+        {
+            if (weapon.Value != null && weapon.Value.DesignerName == grenadeName)
+                count++;
+        }
+        return count;
     }
 
     private HookResult OnItemPurchase(EventItemPurchase @event, GameEventInfo info)
@@ -428,7 +441,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         {
             if (!IsPlayerValid(player)) continue;
             // CS2 max is 2 flashbangs — only give up to that
-            int count = GetPlayerFlashbangCount(player);
+            int count = GetPlayerGrenadeCount(player, "weapon_flashbang");
             for (int i = count; i < 2; i++)
             {
                 try { player.GiveNamedItem("weapon_flashbang"); }
@@ -450,23 +463,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void GivePlayerFlashbang(CCSPlayerController player)
     {
         if (!IsPlayerValid(player)) return;
-        if (GetPlayerFlashbangCount(player) >= 2) return;
+        if (GetPlayerGrenadeCount(player, "weapon_flashbang") >= 2) return;
         try { player.GiveNamedItem("weapon_flashbang"); }
         catch { /* ignore */ }
-    }
-
-    private static int GetPlayerFlashbangCount(CCSPlayerController player)
-    {
-        if (player.PlayerPawn.Value == null) return 2;
-        var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
-        if (weapons == null) return 2;
-        int count = 0;
-        foreach (var weapon in weapons)
-        {
-            if (weapon.Value != null && weapon.Value.DesignerName == "weapon_flashbang")
-                count++;
-        }
-        return count;
     }
 
     private void SetAllPlayersHealth(int health)
@@ -568,10 +567,10 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         foreach (var player in Utilities.GetPlayers())
         {
             if (!IsPlayerValid(player)) continue;
-            for (int i = 0; i < 5; i++)
+            if (GetPlayerGrenadeCount(player, "weapon_hegrenade") < 1)
             {
                 try { player.GiveNamedItem("weapon_hegrenade"); }
-                catch (Exception ex) { Logger.LogWarning("[RandomRoundEvents] Failed to give HE to {Player}: {Error}", player.PlayerName, ex.Message); }
+                catch { /* ignore */ }
             }
         }
     }
