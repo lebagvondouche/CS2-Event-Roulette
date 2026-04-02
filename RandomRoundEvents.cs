@@ -5,6 +5,7 @@ using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Admin;
+using CounterStrikeSharp.API.Modules.Menu;
 using Microsoft.Extensions.Logging;
 
 namespace RandomRoundEvents;
@@ -141,6 +142,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_lastman", "Trigger Last Man Standing event", OnLastManStandingCommand);
         AddCommand("css_rre_powerup", "Trigger Power-Up Round event", OnPowerUpRoundCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
+        AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
 
         _isLoaded = true;
         Logger.LogInformation("[RandomRoundEvents] Plugin loaded successfully.");
@@ -749,6 +751,29 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetAllPlayersHealth(Config.PowerUpHP);
         GiveAllPlayersFullArmor();
         GiveAllPlayersUnlimitedHE();
+    }
+
+    private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player == null || !IsAdmin(player)) return;
+
+        var menu = new ChatMenu("Event Roulette");
+        menu.AddMenuOption("Low Gravity", (p, _) => { OnLowGravityCommand(p, command); });
+        menu.AddMenuOption("Headshot Only", (p, _) => { OnHeadshotOnlyCommand(p, command); });
+        menu.AddMenuOption("Random Weapon", (p, _) => { OnRandomWeaponCommand(p, command); });
+        menu.AddMenuOption("Double Damage", (p, _) => { OnDoubleDamageCommand(p, command); });
+        menu.AddMenuOption("Team Swap", (p, _) => { OnSwapTeamsCommand(p, command); });
+        menu.AddMenuOption("Flashbang Spam", (p, _) => { OnFlashbangSpamCommand(p, command); });
+        menu.AddMenuOption("Knife Only", (p, _) => { OnKnifeOnlyCommand(p, command); });
+        menu.AddMenuOption("Zeus Only", (p, _) => { OnZeusOnlyCommand(p, command); });
+        menu.AddMenuOption("No Reload", (p, _) => { OnNoReloadCommand(p, command); });
+        menu.AddMenuOption("Gravity Switch", (p, _) => { OnGravitySwitchCommand(p, command); });
+        menu.AddMenuOption("Speed Randomizer", (p, _) => { OnSpeedRandomizerCommand(p, command); });
+        menu.AddMenuOption("Last Man Standing", (p, _) => { OnLastManStandingCommand(p, command); });
+        menu.AddMenuOption("Power-Up Round", (p, _) => { OnPowerUpRoundCommand(p, command); });
+        menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });
+
+        MenuManager.OpenChatMenu(player, menu);
     }
 
     private void OnResetCommand(CCSPlayerController? player, CommandInfo command)
