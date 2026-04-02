@@ -202,12 +202,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = selectedEvent;
         Logger.LogInformation("[RandomRoundEvents] Selected event: {Event}", selectedEvent);
         DisableBuying();
-        StripAllWeapons();
 
         switch (selectedEvent)
         {
             case EventType.LowGravity:
                 AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. Perfect accuracy!");
+                StripAllWeapons();
                 SetGravity(Config.LowGravityValue);
                 SetNospread(true);
                 StartGravityMonitor();
@@ -220,10 +220,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.RandomWeapon:
                 AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
+                StripAllWeapons();
                 GiveAllPlayersRandomWeapons();
                 break;
             case EventType.DoubleDamage:
                 AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
+                StripAllWeapons();
                 GiveAllPlayersGlock();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
                 break;
@@ -233,6 +235,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.FlashbangSpam:
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
+                StripAllWeapons();
                 SetAllPlayersHealth(Config.FlashbangStartHP);
                 GiveAllPlayersFlashbangs();
                 StartFlashbangSpamRound();
@@ -240,15 +243,17 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.KnifeOnly:
                 AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
+                StripAllWeapons();
                 GiveAllPlayersKnives();
                 break;
             case EventType.ZeusOnly:
                 AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
+                StripAllWeapons();
                 GiveAllPlayersZeus();
                 break;
             case EventType.NoReload:
                 AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
-                ApplyNoReload();
+                AddTimer(0.5f, () => { ApplyNoReload(); });
                 RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
                 break;
             case EventType.GravitySwitch:
@@ -262,10 +267,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.LastManStanding:
                 AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
+                StripAllWeapons();
                 GiveAllPlayersPistols();
                 break;
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
+                StripAllWeapons();
                 SetAllPlayersHealth(Config.PowerUpHP);
                 GiveAllPlayersFullArmor();
                 GiveAllPlayersUnlimitedHE();
