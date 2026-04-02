@@ -63,6 +63,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private CounterStrikeSharp.API.Modules.Timers.Timer? _gravityMonitorTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _speedEnforceTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _swapTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _heRefillTimer;
     private readonly Dictionary<int, float> _playerSpeeds = new();
     private bool _isLoaded = false;
     private bool _roundEventTriggered = false;
@@ -165,6 +166,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _gravityMonitorTimer?.Kill();
         _speedEnforceTimer?.Kill();
         _swapTimer?.Kill();
+        _heRefillTimer?.Kill();
         _isLoaded = false;
         _roundEventTriggered = false;
         base.Unload(hotReload);
@@ -188,6 +190,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _gravityMonitorTimer?.Kill();
         _speedEnforceTimer?.Kill();
         _swapTimer?.Kill();
+        _heRefillTimer?.Kill();
         _playerSpeeds.Clear();
 
         var enabledEvents = new List<EventType>();
@@ -297,7 +300,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
-                RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
+                StartHERefillTimer();
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE();
                 break;
             case EventType.ChaosRound:
@@ -361,22 +364,23 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         return HookResult.Continue;
     }
 
-    private HookResult OnHEFire(EventWeaponFire @event, GameEventInfo info)
+    private void StartHERefillTimer()
     {
-        var player = @event.Userid;
-        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
-
-        AddTimer(1.0f, () =>
+        _heRefillTimer?.Kill();
+        _heRefillTimer = AddTimer(1.0f, () =>
         {
-            if (IsPlayerValid(player))
+            foreach (var player in Utilities.GetPlayers())
             {
-                try { player.GiveNamedItem("weapon_hegrenade"); }
-                catch { /* ignore */ }
+                if (!IsPlayerValid(player)) continue;
+                if (GetPlayerGrenadeCount(player, "weapon_hegrenade") < 1)
+                {
+                    try { player.GiveNamedItem("weapon_hegrenade"); }
+                    catch { /* ignore */ }
+                }
             }
-        });
-
-        return HookResult.Continue;
+        }, TimerFlags.REPEAT);
     }
+
 
     private static int GetPlayerGrenadeCount(CCSPlayerController player, string grenadeName)
     {
@@ -439,14 +443,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _gravityMonitorTimer?.Kill();
         _speedEnforceTimer?.Kill();
         _swapTimer?.Kill();
+        _heRefillTimer?.Kill();
         _playerSpeeds.Clear();
 
         if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _activeEvent == EventType.ChaosRound)
             DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
         if (_activeEvent == EventType.FlashbangSpam)
             DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-        if (_activeEvent == EventType.PowerUpRound)
-            DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
         if (_activeEvent == EventType.NoReload)
             DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
 
