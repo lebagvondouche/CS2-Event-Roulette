@@ -42,6 +42,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public float FlashbangRefillInterval { get; set; } = 3.0f;
     public int PowerUpHP { get; set; } = 300;
     public int DoubleDamageMultiplier { get; set; } = 2;
+    public int ZeusRechargeTime { get; set; } = 5;
 
     // Chaos round
     public int ChaosRoundChance { get; set; } = 15; // percentage chance (0-100)
@@ -115,6 +116,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Config.FlashbangRefillInterval = Math.Clamp(Config.FlashbangRefillInterval, 1.0f, 30.0f);
         Config.PowerUpHP = Math.Clamp(Config.PowerUpHP, 100, 1000);
         Config.DoubleDamageMultiplier = Math.Clamp(Config.DoubleDamageMultiplier, 2, 10);
+        Config.ZeusRechargeTime = Math.Clamp(Config.ZeusRechargeTime, 0, 30);
         Config.ChaosRoundChance = Math.Clamp(Config.ChaosRoundChance, 0, 100);
 
         Logger.LogInformation("[RandomRoundEvents] Configuration loaded.");
@@ -228,6 +230,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StartGravityMonitor();
                 GiveAllPlayersScout();
                 GiveAllPlayersZeusOnly();
+                Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
                 break;
             case EventType.HeadshotOnly:
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
@@ -268,6 +271,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
                 StripAllWeapons();
                 GiveAllPlayersZeus();
+                Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
                 break;
             case EventType.NoReload:
                 AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
@@ -453,6 +457,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetGravity(800.0f);
         SetNospread(false);
         EnableBuying();
+        Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetNoReload();
         _activeEvent = EventType.None;
     }
@@ -804,6 +809,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         StripAllWeapons();
         GiveAllPlayersScout();
         GiveAllPlayersZeusOnly();
+        Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
     }
 
     private void OnHeadshotOnlyCommand(CCSPlayerController? player, CommandInfo command)
@@ -878,6 +884,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
         StripAllWeapons();
         GiveAllPlayersZeus();
+        Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
     }
 
     private void OnNoReloadCommand(CCSPlayerController? player, CommandInfo command)
