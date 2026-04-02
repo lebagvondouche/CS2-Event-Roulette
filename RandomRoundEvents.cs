@@ -365,7 +365,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         var player = @event.Userid;
         if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
 
-        if (@event.Weapon == "weapon_hegrenade")
+        if (@event.Weapon == "weapon_hegrenade" || @event.Weapon == "hegrenade")
         {
             AddTimer(0.5f, () =>
             {
