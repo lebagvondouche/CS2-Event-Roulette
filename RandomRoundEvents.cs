@@ -215,7 +215,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 GiveAllPlayersZeusOnly();
                 break;
             case EventType.HeadshotOnly:
-                AnnounceEvent("Headshot Only Round", "Only headshots deal damage. Aim for the head!");
+                AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
+                StripAllWeapons();
+                GiveAllPlayersDeagle();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
                 break;
             case EventType.RandomWeapon:
@@ -574,6 +576,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             if (IsPlayerValid(player)) player.GiveNamedItem("weapon_glock");
     }
 
+    private static void GiveAllPlayersDeagle()
+    {
+        foreach (var player in Utilities.GetPlayers())
+            if (IsPlayerValid(player)) player.GiveNamedItem("weapon_deagle");
+    }
+
     private void GiveAllPlayersZeusOnly()
     {
         foreach (var player in Utilities.GetPlayers())
@@ -721,7 +729,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     {
         if (!IsAdmin(player)) return;
         _activeEvent = EventType.HeadshotOnly;
-        AnnounceEvent("Headshot Only Round", "Only headshots deal damage. Aim for the head!");
+        AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
+        StripAllWeapons();
+        GiveAllPlayersDeagle();
         RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
     }
 
