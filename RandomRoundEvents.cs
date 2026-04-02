@@ -200,8 +200,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         switch (selectedEvent)
         {
             case EventType.LowGravity:
-                AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. No buying!");
+                AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. Perfect accuracy!");
                 SetGravity(Config.LowGravityValue);
+                SetNospread(true);
                 StartGravityMonitor();
                 StripAllWeapons();
                 GiveAllPlayersScout();
@@ -290,6 +291,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         _currentGravity = 800.0f;
         SetGravity(800.0f);
+        SetNospread(false);
         ResetNoReload();
 
         _activeEvent = EventType.None;
@@ -622,6 +624,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         // No convar to reset — reserve ammo resets naturally on new round
     }
 
+    private static void SetNospread(bool enabled)
+    {
+        var nospread = ConVar.Find("weapon_accuracy_nospread");
+        if (nospread != null)
+            nospread.SetValue(enabled ? 1 : 0);
+    }
+
     private void StartGravitySwitch()
     {
         _gravitySwitchTimer?.Kill();
@@ -637,8 +646,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     {
         if (!IsAdmin(player)) return;
         _activeEvent = EventType.LowGravity;
-        AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. No buying!");
+        AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. Perfect accuracy!");
         SetGravity(Config.LowGravityValue);
+        SetNospread(true);
         StartGravityMonitor();
         StripAllWeapons();
         GiveAllPlayersScout();
@@ -793,6 +803,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         _currentGravity = 800.0f;
         SetGravity(800.0f);
+        SetNospread(false);
         ResetNoReload();
         _activeEvent = EventType.None;
         _roundEventTriggered = false;
