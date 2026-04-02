@@ -42,6 +42,9 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public float FlashbangRefillInterval { get; set; } = 3.0f;
     public int PowerUpHP { get; set; } = 300;
     public int DoubleDamageMultiplier { get; set; } = 2;
+
+    // Chaos round
+    public int ChaosRoundChance { get; set; } = 15; // percentage chance (0-100)
 }
 
 public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConfig>
@@ -89,10 +92,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         GravitySwitch,
         SpeedRandomizer,
         LastManStanding,
-        PowerUpRound
+        PowerUpRound,
+        ChaosRound
     }
 
     private EventType _activeEvent = EventType.None;
+    private bool _chaosDoubleDamage = false;
 
     public void OnConfigParsed(RandomRoundEventsConfig config)
     {
@@ -110,6 +115,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Config.FlashbangRefillInterval = Math.Clamp(Config.FlashbangRefillInterval, 1.0f, 30.0f);
         Config.PowerUpHP = Math.Clamp(Config.PowerUpHP, 100, 1000);
         Config.DoubleDamageMultiplier = Math.Clamp(Config.DoubleDamageMultiplier, 2, 10);
+        Config.ChaosRoundChance = Math.Clamp(Config.ChaosRoundChance, 0, 100);
 
         Logger.LogInformation("[RandomRoundEvents] Configuration loaded.");
         if (Config.Debug)
@@ -143,6 +149,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_powerup", "Trigger Power-Up Round event", OnPowerUpRoundCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
         AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
+        AddCommand("css_rre_chaos", "Trigger Chaos Round", OnChaosRoundCommand);
 
         _isLoaded = true;
         Logger.LogInformation("[RandomRoundEvents] Plugin loaded successfully.");
@@ -198,7 +205,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             return HookResult.Continue;
         }
 
-        EventType selectedEvent = enabledEvents[_random.Next(0, enabledEvents.Count)];
+        // Roll for chaos round first
+        EventType selectedEvent;
+        if (Config.ChaosRoundChance > 0 && _random.Next(0, 100) < Config.ChaosRoundChance)
+            selectedEvent = EventType.ChaosRound;
+        else
+            selectedEvent = enabledEvents[_random.Next(0, enabledEvents.Count)];
+
         _activeEvent = selectedEvent;
         Logger.LogInformation("[RandomRoundEvents] Selected event: {Event}", selectedEvent);
         DisableBuying();
@@ -281,6 +294,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 GiveAllPlayersUnlimitedHE();
                 RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
                 break;
+            case EventType.ChaosRound:
+                ApplyChaosRound();
+                break;
         }
 
         _roundEventTriggered = true;
@@ -296,7 +312,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _swapTimer?.Kill();
         _playerSpeeds.Clear();
 
-        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage)
+        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _activeEvent == EventType.ChaosRound)
             DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
 
         if (_activeEvent == EventType.FlashbangSpam)
@@ -308,6 +324,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (_activeEvent == EventType.NoReload)
             DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
 
+        _chaosDoubleDamage = false;
         _currentGravity = 800.0f;
         SetGravity(800.0f);
         SetNospread(false);
@@ -339,7 +356,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
-        if (_activeEvent == EventType.DoubleDamage)
+        if (_activeEvent == EventType.DoubleDamage || _chaosDoubleDamage)
         {
             // Apply extra damage based on multiplier (multiplier-1 because original damage already applied)
             int extraDamage = @event.DmgHealth * (Config.DoubleDamageMultiplier - 1);
@@ -654,6 +671,63 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         }
     }
 
+    private void ApplyChaosRound()
+    {
+        _chaosDoubleDamage = false;
+        var mods = new List<string>();
+
+        StripAllWeapons();
+
+        // 1. Gravity: 40% low, 30% switching, 30% normal
+        int gravRoll = _random.Next(100);
+        if (gravRoll < 40)
+        {
+            SetGravity(Config.LowGravityValue);
+            StartGravityMonitor();
+            mods.Add("Low gravity");
+        }
+        else if (gravRoll < 70)
+        {
+            StartGravitySwitch();
+            StartGravityMonitor();
+            mods.Add("Gravity switching");
+        }
+
+        // 2. Speed: 50% chance
+        if (_random.Next(100) < 50)
+        {
+            RandomizeAllPlayersSpeed();
+            mods.Add("Random speed");
+        }
+
+        // 3. Double damage: 40% chance
+        if (_random.Next(100) < 40)
+        {
+            _chaosDoubleDamage = true;
+            RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+            mods.Add($"{Config.DoubleDamageMultiplier}x damage");
+        }
+
+        // 4. Nospread: 30% chance
+        if (_random.Next(100) < 30)
+        {
+            SetNospread(true);
+            mods.Add("Perfect accuracy");
+        }
+
+        // 5. Weapon: pick one
+        string[] weaponOptions = { "weapon_glock", "weapon_deagle", "weapon_ssg08", "weapon_ak47", "weapon_m4a1", "weapon_awp" };
+        string[] weaponNames = { "Glock", "Deagle", "Scout", "AK-47", "M4A1", "AWP" };
+        int weaponIdx = _random.Next(weaponOptions.Length);
+        foreach (var player in Utilities.GetPlayers())
+            if (IsPlayerValid(player)) player.GiveNamedItem(weaponOptions[weaponIdx]);
+        mods.Add(weaponNames[weaponIdx]);
+
+        string desc = string.Join(", ", mods);
+        Server.PrintToChatAll($" {ChatColors.Red}[CHAOS ROUND]{ChatColors.White} Buckle up!");
+        Server.PrintToChatAll($" {ChatColors.Grey}» {desc}");
+    }
+
     private void SetGravity(float value)
     {
         _currentGravity = value;
@@ -842,6 +916,14 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
     }
 
+    private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command)
+    {
+        if (!IsAdmin(player)) return;
+        _activeEvent = EventType.ChaosRound;
+        DisableBuying();
+        ApplyChaosRound();
+    }
+
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
     {
         if (player == null || !IsAdmin(player)) return;
@@ -860,6 +942,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         menu.AddMenuOption("Speed Randomizer", (p, _) => { OnSpeedRandomizerCommand(p, command); });
         menu.AddMenuOption("Last Man Standing", (p, _) => { OnLastManStandingCommand(p, command); });
         menu.AddMenuOption("Power-Up Round", (p, _) => { OnPowerUpRoundCommand(p, command); });
+        menu.AddMenuOption("Chaos Round", (p, _) => { OnChaosRoundCommand(p, command); });
         menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });
 
         MenuManager.OpenChatMenu(player, menu);
@@ -875,7 +958,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _swapTimer?.Kill();
         _playerSpeeds.Clear();
 
-        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage)
+        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _activeEvent == EventType.ChaosRound)
             DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
         if (_activeEvent == EventType.FlashbangSpam)
             DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
@@ -884,6 +967,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (_activeEvent == EventType.NoReload)
             DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
 
+        _chaosDoubleDamage = false;
         _currentGravity = 800.0f;
         SetGravity(800.0f);
         SetNospread(false);
