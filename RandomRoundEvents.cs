@@ -365,17 +365,14 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         var player = @event.Userid;
         if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
 
-        if (@event.Weapon == "weapon_hegrenade" || @event.Weapon == "hegrenade")
+        AddTimer(1.0f, () =>
         {
-            AddTimer(0.5f, () =>
+            if (IsPlayerValid(player))
             {
-                if (IsPlayerValid(player) && GetPlayerGrenadeCount(player, "weapon_hegrenade") < 1)
-                {
-                    try { player.GiveNamedItem("weapon_hegrenade"); }
-                    catch { /* ignore */ }
-                }
-            });
-        }
+                try { player.GiveNamedItem("weapon_hegrenade"); }
+                catch { /* ignore */ }
+            }
+        });
 
         return HookResult.Continue;
     }
