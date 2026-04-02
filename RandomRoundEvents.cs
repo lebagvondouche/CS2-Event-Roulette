@@ -218,7 +218,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Logger.LogInformation("[RandomRoundEvents] Selected event: {Event}", selectedEvent);
         ResetAllState();
         _activeEvent = selectedEvent;
-        DisableBuying();
+
+        // Enable buying only for events that allow it
+        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer)
+            EnableBuying();
+        else
+            DisableBuying();
 
         switch (selectedEvent)
         {
@@ -458,7 +463,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetNoReload();
-        StripAllWeapons();
         _activeEvent = EventType.None;
     }
 
@@ -802,6 +806,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.LowGravity;
+        DisableBuying();
         AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. Perfect accuracy!");
         SetGravity(Config.LowGravityValue);
         SetNospread(true);
@@ -817,6 +822,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.HeadshotOnly;
+        DisableBuying();
         AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
         StripAllWeapons();
         GiveAllPlayersKnives();
@@ -829,6 +835,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.RandomWeapon;
+        DisableBuying();
         AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
         StripAllWeapons();
         GiveAllPlayersRandomWeapons();
@@ -839,6 +846,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.DoubleDamage;
+        DisableBuying();
         AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
         GiveAllPlayersGlock();
         RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
@@ -858,6 +866,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.FlashbangSpam;
+        DisableBuying();
         AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
         StripAllWeapons();
         GiveAllPlayersKnives();
@@ -872,6 +881,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.KnifeOnly;
+        DisableBuying();
         AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
         StripAllWeapons();
         GiveAllPlayersKnives();
@@ -882,6 +892,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.ZeusOnly;
+        DisableBuying();
         AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
         StripAllWeapons();
         GiveAllPlayersZeus();
@@ -893,6 +904,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.NoReload;
+        DisableBuying();
         AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
         ApplyNoReload();
         RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
@@ -903,6 +915,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.GravitySwitch;
+        DisableBuying();
         AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
         StartGravitySwitch();
         StartGravityMonitor();
@@ -922,6 +935,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.LastManStanding;
+        DisableBuying();
         AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
         StripAllWeapons();
         GiveAllPlayersPistols();
@@ -932,6 +946,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         ResetAllState();
         _activeEvent = EventType.PowerUpRound;
+        DisableBuying();
         AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
         StripAllWeapons();
         GiveAllPlayersKnives();
