@@ -677,12 +677,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private static void DisableBuying()
     {
-        Server.ExecuteCommand("mp_buy_allow_guns 0; mp_buy_allow_grenades 0");
+        Server.ExecuteCommand("mp_buy_allow_guns 0; mp_buy_allow_grenades 0; mp_free_armor 0; mp_max_armor 0");
     }
 
     private static void EnableBuying()
     {
-        Server.ExecuteCommand("mp_buy_allow_guns 255; mp_buy_allow_grenades 1");
+        Server.ExecuteCommand("mp_buy_allow_guns 255; mp_buy_allow_grenades 1; mp_max_armor 2");
     }
 
     private void StartGravitySwitch()
