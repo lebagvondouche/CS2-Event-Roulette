@@ -458,6 +458,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetNoReload();
+        StripAllWeapons();
         _activeEvent = EventType.None;
     }
 
