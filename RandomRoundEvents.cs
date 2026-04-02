@@ -238,31 +238,25 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         {
             case EventType.LowGravity:
                 AnnounceEvent("Low Gravity Round", "Float around with a Scout and Zeus. Perfect accuracy!");
-                StripAllWeapons();
                 SetGravity(Config.LowGravityValue);
                 SetNospread(true);
                 StartGravityMonitor();
-                GiveAllPlayersScout();
-                GiveAllPlayersZeusOnly();
                 Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersScout(); GiveAllPlayersZeusOnly(); });
                 break;
             case EventType.HeadshotOnly:
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
-                StripAllWeapons();
-                GiveAllPlayersKnives();
-                GiveAllPlayersDeagle();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersDeagle(); });
                 break;
             case EventType.RandomWeapon:
                 AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
-                StripAllWeapons();
-                GiveAllPlayersRandomWeapons();
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersRandomWeapons(); });
                 break;
             case EventType.DoubleDamage:
                 AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
-                StripAllWeapons();
-                GiveAllPlayersGlock();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersGlock(); });
                 break;
             case EventType.SwapTeams:
                 AnnounceEvent("Team Swap Round", "A random pair swaps teams every 30 seconds!");
@@ -270,28 +264,23 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.FlashbangSpam:
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
-                StripAllWeapons();
-                GiveAllPlayersKnives();
-                SetAllPlayersHealth(Config.FlashbangStartHP);
-                GiveAllPlayersFlashbangs();
                 StartFlashbangSpamRound();
                 RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs(); });
                 break;
             case EventType.KnifeOnly:
                 AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
-                StripAllWeapons();
-                GiveAllPlayersKnives();
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); });
                 break;
             case EventType.ZeusOnly:
                 AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
-                StripAllWeapons();
-                GiveAllPlayersZeus();
                 Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersZeus(); });
                 break;
             case EventType.NoReload:
                 AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
-                AddTimer(0.5f, () => { ApplyNoReload(); });
                 RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
+                AddTimer(0.5f, () => { ApplyNoReload(); });
                 break;
             case EventType.GravitySwitch:
                 AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
@@ -300,26 +289,19 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.SpeedRandomizer:
                 AnnounceEvent("Speed Randomizer Round", "Everyone moves at a different random speed!");
-                GiveAllPlayersKnives();
-                GiveAllPlayersGlock();
-                RandomizeAllPlayersSpeed();
+                AddTimer(0.1f, () => { GiveAllPlayersKnives(); GiveAllPlayersGlock(); RandomizeAllPlayersSpeed(); });
                 break;
             case EventType.LastManStanding:
                 AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
-                StripAllWeapons();
-                GiveAllPlayersPistols();
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersPistols(); });
                 break;
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
-                StripAllWeapons();
-                GiveAllPlayersKnives();
-                SetAllPlayersHealth(Config.PowerUpHP);
-                GiveAllPlayersFullArmor();
-                GiveAllPlayersUnlimitedHE();
                 RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
+                AddTimer(0.1f, () => { StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); });
                 break;
             case EventType.ChaosRound:
-                ApplyChaosRound();
+                AddTimer(0.1f, () => { ApplyChaosRound(); });
                 break;
         }
 
