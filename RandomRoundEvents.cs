@@ -263,9 +263,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
+                StripAllWeapons();
                 SetAllPlayersHealth(Config.PowerUpHP);
                 GiveAllPlayersFullArmor();
                 GiveAllPlayersUnlimitedHE();
+                RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
                 break;
         }
 
@@ -287,6 +289,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         if (_activeEvent == EventType.FlashbangSpam)
             DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+
+        if (_activeEvent == EventType.PowerUpRound)
+            DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
 
         _currentGravity = 800.0f;
         SetGravity(800.0f);
@@ -342,6 +347,27 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         return HookResult.Continue;
     }
 
+    private HookResult OnHEFire(EventWeaponFire @event, GameEventInfo info)
+    {
+        var player = @event.Userid;
+        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
+
+        if (@event.Weapon == "weapon_hegrenade")
+        {
+            // Give a new HE after a short delay so the thrown one doesn't conflict
+            AddTimer(0.5f, () =>
+            {
+                if (IsPlayerValid(player))
+                {
+                    try { player.GiveNamedItem("weapon_hegrenade"); }
+                    catch { /* ignore */ }
+                }
+            });
+        }
+
+        return HookResult.Continue;
+    }
+
     private HookResult OnItemPurchase(EventItemPurchase @event, GameEventInfo info)
     {
         var player = @event.Userid;
@@ -352,7 +378,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             _activeEvent == EventType.FlashbangSpam ||
             _activeEvent == EventType.SpeedRandomizer || _activeEvent == EventType.DoubleDamage ||
             _activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.NoReload ||
-            _activeEvent == EventType.SwapTeams)
+            _activeEvent == EventType.SwapTeams || _activeEvent == EventType.PowerUpRound)
         {
             player.PrintToChat($" {ChatColors.Blue}[EVENT]{ChatColors.White} Purchases are disabled during this event!");
             return HookResult.Handled;
@@ -756,9 +782,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         _activeEvent = EventType.PowerUpRound;
         AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
+        StripAllWeapons();
         SetAllPlayersHealth(Config.PowerUpHP);
         GiveAllPlayersFullArmor();
         GiveAllPlayersUnlimitedHE();
+        RegisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
     }
 
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
@@ -798,6 +826,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
         if (_activeEvent == EventType.FlashbangSpam)
             DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+        if (_activeEvent == EventType.PowerUpRound)
+            DeregisterEventHandler<EventWeaponFire>(OnHEFire, HookMode.Post);
 
         _currentGravity = 800.0f;
         SetGravity(800.0f);
