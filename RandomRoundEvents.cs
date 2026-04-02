@@ -417,12 +417,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         var player = @event.Userid;
         if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
 
-        // Only block purchases for events where it makes sense (not weapon-based events)
-        if (_activeEvent == EventType.LowGravity || _activeEvent == EventType.GravitySwitch ||
-            _activeEvent == EventType.FlashbangSpam ||
-            _activeEvent == EventType.SpeedRandomizer || _activeEvent == EventType.DoubleDamage ||
-            _activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.NoReload ||
-            _activeEvent == EventType.SwapTeams || _activeEvent == EventType.PowerUpRound)
+        // Block all purchases during any active event
+        if (_activeEvent != EventType.None)
         {
             player.PrintToChat($" {ChatColors.Blue}[EVENT]{ChatColors.White} Purchases are disabled during this event!");
             return HookResult.Handled;
