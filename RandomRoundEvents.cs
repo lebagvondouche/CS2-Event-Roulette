@@ -172,10 +172,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private HookResult OnRoundStart(EventRoundStart @event, GameEventInfo info)
     {
-        // Skip events during warmup
-        var gameRules = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault();
-        if (gameRules?.GameRules?.WarmupPeriod == true)
-            return HookResult.Continue;
+        // Skip events during warmup (unless admin forced an event)
+        if (_forcedEvent == EventType.None)
+        {
+            var gameRules = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault();
+            if (gameRules?.GameRules?.WarmupPeriod == true)
+                return HookResult.Continue;
+        }
 
         if (_roundEventTriggered)
             return HookResult.Continue;
