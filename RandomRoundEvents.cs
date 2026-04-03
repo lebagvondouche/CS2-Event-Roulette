@@ -270,7 +270,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.FlashbangSpam:
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. Knife does no damage!");
                 StartFlashbangSpamRound();
-                RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post); _weaponFireHandlerRegistered = true;
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs();
                 break;
@@ -371,12 +370,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private HookResult OnWeaponFire(EventWeaponFire @event, GameEventInfo info)
     {
-        var player = @event.Userid;
-        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
-
-        if (_activeEvent == EventType.FlashbangSpam && _random.Next(0, 100) < 10)
-            GivePlayerFlashbang(player);
-
         return HookResult.Continue;
     }
 
