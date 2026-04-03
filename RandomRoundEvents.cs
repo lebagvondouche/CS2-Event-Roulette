@@ -332,6 +332,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         var pawn = victim.PlayerPawn.Value;
 
+        // Skip if player is already dead
+        if (pawn.Health <= 0) return HookResult.Continue;
+
         if (_activeEvent == EventType.HeadshotOnly && @event.Hitgroup != 1)
         {
             // Not a headshot — heal back the damage
@@ -350,12 +353,10 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         if (_activeEvent == EventType.DoubleDamage || _chaosDoubleDamage)
         {
-            // Apply extra damage based on multiplier (multiplier-1 because original damage already applied)
+            // Apply extra damage — just reduce health, don't call CommitSuicide
             int extraDamage = @event.DmgHealth * (Config.DoubleDamageMultiplier - 1);
             pawn.Health = Math.Max(0, pawn.Health - extraDamage);
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
-            if (pawn.Health <= 0)
-                pawn.CommitSuicide(false, true);
         }
 
         return HookResult.Continue;
