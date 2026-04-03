@@ -226,9 +226,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         else
             selectedEvent = enabledEvents[_random.Next(0, enabledEvents.Count)];
 
-        _activeEvent = selectedEvent;
         Logger.LogInformation("[RandomRoundEvents] Selected event: {Event}", selectedEvent);
-        ResetAllState();
+        ResetAllState();  // resets based on previous _activeEvent, then sets it to None
         _activeEvent = selectedEvent;
 
         // Enable buying only for events that allow it
@@ -351,6 +350,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             // Heal back knife damage
             int dmg = @event.DmgHealth;
             int maxHp = _activeEvent == EventType.PowerUpRound ? Config.PowerUpHP : Config.FlashbangStartHP;
+            Logger.LogInformation("[RandomRoundEvents] Knife heal: weapon={Weapon}, dmg={Dmg}, health={Health}, maxHp={MaxHp}", @event.Weapon, dmg, pawn.Health, maxHp);
             pawn.Health = Math.Min(pawn.Health + dmg, maxHp);
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
@@ -531,10 +531,10 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void StartFlashbangSpamRound()
     {
         _flashbangSpamTimer?.Kill();
-        _flashbangSpamTimer = AddTimer(Config.FlashbangRefillInterval, () =>
+        _flashbangSpamTimer = AddTimer(1.0f, () =>
         {
             foreach (var player in Utilities.GetPlayers())
-                if (IsPlayerValid(player) && _random.Next(0, 100) < 30) GivePlayerFlashbang(player);
+                if (IsPlayerValid(player)) GivePlayerFlashbang(player);
         }, TimerFlags.REPEAT);
     }
 
