@@ -268,6 +268,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
                 StartFlashbangSpamRound();
                 RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs();
                 break;
             case EventType.KnifeOnly:
@@ -343,11 +344,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
-        if (_activeEvent == EventType.PowerUpRound && @event.Weapon == "weapon_knife")
+        if ((_activeEvent == EventType.PowerUpRound || _activeEvent == EventType.FlashbangSpam) && @event.Weapon == "weapon_knife")
         {
-            // Heal back knife damage during HE round
+            // Heal back knife damage
             int dmg = @event.DmgHealth;
-            pawn.Health = Math.Min(pawn.Health + dmg, Config.PowerUpHP);
+            int maxHp = _activeEvent == EventType.PowerUpRound ? Config.PowerUpHP : Config.FlashbangStartHP;
+            pawn.Health = Math.Min(pawn.Health + dmg, maxHp);
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
@@ -451,7 +453,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         try
         {
-            if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _chaosDoubleDamage || _activeEvent == EventType.PowerUpRound)
+            if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _chaosDoubleDamage || _activeEvent == EventType.PowerUpRound || _activeEvent == EventType.FlashbangSpam)
                 DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
             if (_activeEvent == EventType.FlashbangSpam)
                 DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
