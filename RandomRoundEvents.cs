@@ -58,7 +58,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
 public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConfig>
 {
     public override string ModuleName => "RandomRoundEvents";
-    public override string ModuleVersion => "1.2";
+    public override string ModuleVersion => "0.5";
     public override string ModuleAuthor => "Martin Persson";
     public override string ModuleDescription => "A plugin that triggers random events during rounds.";
 
@@ -112,7 +112,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private EventType _forcedEvent = EventType.None;
     private bool _chaosDoubleDamage = false;
     private bool _hurtHandlerRegistered = false;
-    private bool _weaponFireHandlerRegistered = false;
     private bool _itemPickupHandlerRegistered = false;
     private bool _deathHandlerRegistered = false;
     private bool _spawnHandlerRegistered = false;
@@ -344,7 +343,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Respawn Round", $"Each team has {Config.RespawnPool} shared respawns!");
                 _tRespawns = Config.RespawnPool;
                 _ctRespawns = Config.RespawnPool;
-                Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0; mp_randomspawn 1; mp_randomspawn_los 1");
+                Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0; mp_randomspawn 1; mp_randomspawn_los 1; mp_maxmoney 60000; mp_startmoney 60000; mp_afterroundmoney 60000");
                 RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath, HookMode.Post); _deathHandlerRegistered = true;
                 RegisterEventHandler<EventPlayerSpawn>(OnRespawnSpawn, HookMode.Post); _spawnHandlerRegistered = true;
                 break;
@@ -407,11 +406,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
-        return HookResult.Continue;
-    }
-
-    private HookResult OnWeaponFire(EventWeaponFire @event, GameEventInfo info)
-    {
         return HookResult.Continue;
     }
 
@@ -560,11 +554,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
                 _hurtHandlerRegistered = false;
             }
-            if (_weaponFireHandlerRegistered)
-            {
-                DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-                _weaponFireHandlerRegistered = false;
-            }
             if (_itemPickupHandlerRegistered)
             {
                 DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
@@ -592,7 +581,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetNospread(false);
         SetBhop(false);
         ResetAllPlayersVisibility();
-        Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0");
+        Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0; mp_maxmoney 16000; mp_startmoney 800; mp_afterroundmoney 0");
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetMaxHealth();
@@ -653,7 +642,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void StartFlashbangSpamRound()
     {
         _flashbangSpamTimer?.Kill();
-        _flashbangSpamTimer = AddTimer(1.0f, () =>
+        _flashbangSpamTimer = AddTimer(Config.FlashbangRefillInterval, () =>
         {
             foreach (var player in Utilities.GetPlayers())
                 if (IsPlayerValid(player)) GivePlayerFlashbang(player);
@@ -670,7 +659,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private void SetAllPlayersHealth(int health)
     {
-        health = Math.Clamp(health, 1, 300);
+        health = Math.Clamp(health, 1, 1000);
         foreach (var player in Utilities.GetPlayers())
         {
             if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
@@ -819,7 +808,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     {
         foreach (var player in Utilities.GetPlayers())
         {
-            if (player.PlayerPawn.Value == null) continue;
+            if (!player.IsValid || player.PlayerPawn.Value == null) continue;
             player.PlayerPawn.Value.Render = Color.FromArgb(255, 255, 255, 255);
             Utilities.SetStateChanged(player.PlayerPawn.Value, "CBaseModelEntity", "m_clrRender");
         }

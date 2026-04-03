@@ -15,6 +15,9 @@
   "EnableSpeedRandomizer": true,
   "EnableLastManStanding": true,
   "EnablePowerUpRound": true,
+  "EnableTankRound": true,
+  "EnableInvisibleRound": true,
+  "EnableRespawnRound": true,
 
   "LowGravityValue": 200,
   "GravitySwitchLow": 400,
@@ -29,4 +32,7 @@
   "DoubleDamageMultiplier": 2,
   "ZeusRechargeTime": 3,
   "EnableBomb": true,
-  "ChaosRoundChance": 10}
+  "TankHP": 500,
+  "RespawnPool": 10,
+  "ChaosRoundChance": 10
+}
