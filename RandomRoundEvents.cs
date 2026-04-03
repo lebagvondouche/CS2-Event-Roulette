@@ -304,7 +304,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, unlimited HE. Knife does no damage!");
                 StartHERefillTimer();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
-                StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE();
+                StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); GiveAllPlayersMolotov();
                 break;
             case EventType.ChaosRound:
                 ApplyChaosRound();
@@ -384,6 +384,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 if (GetPlayerGrenadeCount(player, "weapon_hegrenade") < 1)
                 {
                     try { player.GiveNamedItem("weapon_hegrenade"); }
+                    catch { /* ignore */ }
+                }
+                if (GetPlayerGrenadeCount(player, "weapon_molotov") < 1 && GetPlayerGrenadeCount(player, "weapon_incgrenade") < 1)
+                {
+                    try { player.GiveNamedItem("weapon_molotov"); }
                     catch { /* ignore */ }
                 }
             }
@@ -659,6 +664,19 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             if (GetPlayerGrenadeCount(player, "weapon_hegrenade") < 1)
             {
                 try { player.GiveNamedItem("weapon_hegrenade"); }
+                catch { /* ignore */ }
+            }
+        }
+    }
+
+    private static void GiveAllPlayersMolotov()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            if (GetPlayerGrenadeCount(player, "weapon_molotov") < 1 && GetPlayerGrenadeCount(player, "weapon_incgrenade") < 1)
+            {
+                try { player.GiveNamedItem("weapon_molotov"); }
                 catch { /* ignore */ }
             }
         }
