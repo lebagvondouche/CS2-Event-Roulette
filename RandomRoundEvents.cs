@@ -268,7 +268,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StartSwapTimer();
                 break;
             case EventType.FlashbangSpam:
-                AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
+                AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. Knife does no damage!");
                 StartFlashbangSpamRound();
                 RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post); _weaponFireHandlerRegistered = true;
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
@@ -302,7 +302,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersPistols();
                 break;
             case EventType.PowerUpRound:
-                AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
+                AnnounceEvent("Power-Up Round", "300 HP, full armor, unlimited HE. Knife does no damage!");
                 StartHERefillTimer();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE();
