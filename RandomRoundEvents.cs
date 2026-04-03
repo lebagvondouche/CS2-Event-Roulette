@@ -300,6 +300,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
                 StartHERefillTimer();
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE();
                 break;
             case EventType.ChaosRound:
@@ -336,6 +337,14 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             // Not a headshot — heal back the damage
             int dmg = @event.DmgHealth;
             pawn.Health = Math.Min(pawn.Health + dmg, 100);
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+        }
+
+        if (_activeEvent == EventType.PowerUpRound && @event.Weapon == "weapon_knife")
+        {
+            // Heal back knife damage during HE round
+            int dmg = @event.DmgHealth;
+            pawn.Health = Math.Min(pawn.Health + dmg, Config.PowerUpHP);
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
@@ -439,12 +448,19 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _heRefillTimer?.Kill();
         _playerSpeeds.Clear();
 
-        if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _activeEvent == EventType.ChaosRound)
-            DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-        if (_activeEvent == EventType.FlashbangSpam)
-            DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-        if (_activeEvent == EventType.NoReload)
-            DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
+        try
+        {
+            if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _chaosDoubleDamage || _activeEvent == EventType.PowerUpRound)
+                DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+            if (_activeEvent == EventType.FlashbangSpam)
+                DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
+            if (_activeEvent == EventType.NoReload)
+                DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning("[RandomRoundEvents] Error deregistering handlers: {Error}", ex.Message);
+        }
 
         _chaosDoubleDamage = false;
         _currentGravity = 800.0f;
