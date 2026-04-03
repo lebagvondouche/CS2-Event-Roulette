@@ -459,17 +459,22 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (_activeEvent != EventType.RespawnRound) return HookResult.Continue;
 
         var player = @event.Userid;
-        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
+        if (player == null || !player.IsValid) return HookResult.Continue;
 
-        // Give random weapon on respawn
-        AddTimer(0.5f, () =>
+        Logger.LogInformation("[RandomRoundEvents] Respawn spawn: {Player}", player.PlayerName);
+
+        // Give random weapon on respawn with delay for pawn setup
+        AddTimer(1.0f, () =>
         {
-            if (!IsPlayerValid(player)) return;
+            if (player == null || !player.IsValid || !player.PawnIsAlive || player.PlayerPawn.Value == null) return;
+            EnableBuying();
             player.RemoveWeapons();
             player.GiveNamedItem("weapon_knife");
             string weapon = RandomWeapons[_random.Next(RandomWeapons.Count)];
+            Logger.LogInformation("[RandomRoundEvents] Giving {Weapon} to {Player}", weapon, player.PlayerName);
             try { player.GiveNamedItem(weapon); }
             catch { /* ignore */ }
+            DisableBuying();
         });
 
         return HookResult.Continue;
