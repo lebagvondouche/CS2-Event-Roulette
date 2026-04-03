@@ -374,6 +374,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             int dmg = @event.DmgHealth;
             int maxHp = _activeEvent == EventType.PowerUpRound ? Config.PowerUpHP : Config.FlashbangStartHP;
             pawn.Health = Math.Min(pawn.Health + dmg, maxHp);
+            // If the engine already killed the player (health was <= 0), revive them
+            if (pawn.LifeState != (byte)0)
+            {
+                pawn.LifeState = (byte)0; // LIFE_ALIVE
+                Utilities.SetStateChanged(pawn, "CBaseEntity", "m_lifeState");
+            }
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
             return HookResult.Continue; // Don't process further
         }
