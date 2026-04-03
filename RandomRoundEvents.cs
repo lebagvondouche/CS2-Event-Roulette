@@ -467,9 +467,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddTimer(1.0f, () =>
         {
             if (player == null || !player.IsValid || !player.PawnIsAlive || player.PlayerPawn.Value == null) return;
+            // Give random weapon
             EnableBuying();
-            player.RemoveWeapons();
-            player.GiveNamedItem("weapon_knife");
             string weapon = RandomWeapons[_random.Next(RandomWeapons.Count)];
             Logger.LogInformation("[RandomRoundEvents] Giving {Weapon} to {Player}", weapon, player.PlayerName);
             try { player.GiveNamedItem(weapon); }
