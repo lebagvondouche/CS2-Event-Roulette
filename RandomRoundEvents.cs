@@ -72,6 +72,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private CounterStrikeSharp.API.Modules.Timers.Timer? _swapTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _heRefillTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _noReloadTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _ammoRefillTimer;
     private readonly Dictionary<int, float> _playerSpeeds = new();
     private bool _isLoaded = false;
     private bool _roundEventTriggered = false;
@@ -318,11 +319,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); GiveAllPlayersMolotov();
                 break;
             case EventType.TankRound:
-                AnnounceEvent("Tank Round", $"{Config.TankHP} HP, full armor, shotguns only. Bullet sponge!");
+                AnnounceEvent("Tank Round", $"{Config.TankHP} HP, full armor, shotguns only. Unlimited ammo!");
                 StripAllWeapons(); GiveAllPlayersKnives();
                 SetAllPlayersHealth(Config.TankHP);
                 GiveAllPlayersFullArmor();
                 GiveAllPlayersShotgun();
+                StartAmmoRefillTimer();
                 break;
             case EventType.InvisibleRound:
                 AnnounceEvent("Invisible Round", "Everyone is invisible! Listen for footsteps!");
@@ -546,6 +548,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _swapTimer?.Kill();
         _heRefillTimer?.Kill();
         _noReloadTimer?.Kill();
+        _ammoRefillTimer?.Kill();
         _playerSpeeds.Clear();
 
         try
@@ -878,6 +881,27 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                     if (weapon == null) continue;
                     if (weapon.ReserveAmmo[0] > 0)
                         weapon.ReserveAmmo[0] = 0;
+                }
+            }
+        }, TimerFlags.REPEAT);
+    }
+
+    private void StartAmmoRefillTimer()
+    {
+        _ammoRefillTimer?.Kill();
+        _ammoRefillTimer = AddTimer(0.5f, () =>
+        {
+            foreach (var player in Utilities.GetPlayers())
+            {
+                if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+                var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
+                if (weapons == null) continue;
+                foreach (var weaponHandle in weapons)
+                {
+                    var weapon = weaponHandle.Value;
+                    if (weapon == null || weapon.DesignerName.Contains("knife") || weapon.DesignerName.Contains("bayonet")) continue;
+                    if (weapon.ReserveAmmo[0] < 100)
+                        weapon.ReserveAmmo[0] = 100;
                 }
             }
         }, TimerFlags.REPEAT);
