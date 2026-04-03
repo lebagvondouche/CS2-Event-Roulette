@@ -336,6 +336,17 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         var pawn = victim.PlayerPawn.Value;
 
+        // Heal back knife damage on PowerUp/Flashbang rounds FIRST (before death check)
+        if ((_activeEvent == EventType.PowerUpRound || _activeEvent == EventType.FlashbangSpam) && 
+            (@event.Weapon.Contains("knife") || @event.Weapon.Contains("bayonet")))
+        {
+            int dmg = @event.DmgHealth;
+            int maxHp = _activeEvent == EventType.PowerUpRound ? Config.PowerUpHP : Config.FlashbangStartHP;
+            pawn.Health = Math.Min(pawn.Health + dmg, maxHp);
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+            return HookResult.Continue; // Don't process further
+        }
+
         // Skip if player is already dead
         if (pawn.Health <= 0) return HookResult.Continue;
 
@@ -344,17 +355,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             // Not a headshot — heal back the damage
             int dmg = @event.DmgHealth;
             pawn.Health = Math.Min(pawn.Health + dmg, 100);
-            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
-        }
-
-        if ((_activeEvent == EventType.PowerUpRound || _activeEvent == EventType.FlashbangSpam) && 
-            (@event.Weapon.Contains("knife") || @event.Weapon.Contains("bayonet")))
-        {
-            // Heal back knife damage
-            int dmg = @event.DmgHealth;
-            int maxHp = _activeEvent == EventType.PowerUpRound ? Config.PowerUpHP : Config.FlashbangStartHP;
-            Logger.LogInformation("[RandomRoundEvents] Knife heal: weapon={Weapon}, dmg={Dmg}, health={Health}, maxHp={MaxHp}", @event.Weapon, dmg, pawn.Health, maxHp);
-            pawn.Health = Math.Min(pawn.Health + dmg, maxHp);
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
