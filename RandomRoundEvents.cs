@@ -43,6 +43,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public int PowerUpHP { get; set; } = 300;
     public int DoubleDamageMultiplier { get; set; } = 2;
     public int ZeusRechargeTime { get; set; } = 5;
+    public bool EnableBomb { get; set; } = false;
 
     // Chaos round
     public int ChaosRoundChance { get; set; } = 15; // percentage chance (0-100)
@@ -485,6 +486,19 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     {
         foreach (var player in Utilities.GetPlayers())
             if (IsPlayerValid(player)) player.RemoveWeapons();
+
+        if (Config.EnableBomb)
+        {
+            // Give bomb back to a random alive T
+            var ts = new List<CCSPlayerController>();
+            foreach (var player in Utilities.GetPlayers())
+            {
+                if (IsPlayerValid(player) && player.Team == CsTeam.Terrorist)
+                    ts.Add(player);
+            }
+            if (ts.Count > 0)
+                ts[_random.Next(ts.Count)].GiveNamedItem("weapon_c4");
+        }
     }
 
     private void GiveAllPlayersRandomWeapons()
