@@ -532,10 +532,10 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             if (!IsPlayerValid(player)) continue;
             // CS2 max is 2 flashbangs — only give up to that
             int count = GetPlayerGrenadeCount(player, "weapon_flashbang");
-            for (int i = count; i < 2; i++)
+            if (count < 1)
             {
                 try { player.GiveNamedItem("weapon_flashbang"); }
-                catch { break; }
+                catch { /* ignore */ }
             }
         }
     }
@@ -553,7 +553,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void GivePlayerFlashbang(CCSPlayerController player)
     {
         if (!IsPlayerValid(player)) return;
-        if (GetPlayerGrenadeCount(player, "weapon_flashbang") >= 2) return;
+        if (GetPlayerGrenadeCount(player, "weapon_flashbang") >= 1) return;
         try { player.GiveNamedItem("weapon_flashbang"); }
         catch { /* ignore */ }
     }
