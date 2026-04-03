@@ -295,7 +295,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.LastManStanding:
                 AnnounceEvent("Last Man Standing Round", "Random pistol only. Survive!");
-                StripAllWeapons(); GiveAllPlayersPistols();
+                StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersPistols();
                 break;
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
