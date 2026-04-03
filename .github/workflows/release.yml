@@ -31,6 +31,7 @@ jobs:
         run: |
           cd publish/RandomRoundEvents
           rm -f *.pdb
+          cp ../../RandomRoundEvents.json .
           cd ..
           zip -r ../RandomRoundEvents-${{ github.ref_name }}.zip RandomRoundEvents/
 
