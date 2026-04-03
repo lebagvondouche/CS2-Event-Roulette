@@ -28,7 +28,11 @@ jobs:
         run: dotnet publish --configuration Release --output publish/RandomRoundEvents
 
       - name: Zip release
-        run: cd publish && zip -r ../RandomRoundEvents-${{ github.ref_name }}.zip RandomRoundEvents/
+        run: |
+          cd publish/RandomRoundEvents
+          rm -f *.pdb
+          cd ..
+          zip -r ../RandomRoundEvents-${{ github.ref_name }}.zip RandomRoundEvents/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
