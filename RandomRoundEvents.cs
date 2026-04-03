@@ -115,6 +115,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private bool _weaponFireHandlerRegistered = false;
     private bool _itemPickupHandlerRegistered = false;
     private bool _deathHandlerRegistered = false;
+    private bool _spawnHandlerRegistered = false;
     private int _tRespawns = 0;
     private int _ctRespawns = 0;
 
@@ -343,8 +344,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Respawn Round", $"Each team has {Config.RespawnPool} shared respawns!");
                 _tRespawns = Config.RespawnPool;
                 _ctRespawns = Config.RespawnPool;
-                Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0");
+                Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0; mp_randomspawn 1; mp_randomspawn_los 1");
                 RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath, HookMode.Post); _deathHandlerRegistered = true;
+                RegisterEventHandler<EventPlayerSpawn>(OnRespawnSpawn, HookMode.Post); _spawnHandlerRegistered = true;
                 break;
             case EventType.ChaosRound:
                 ApplyChaosRound();
@@ -452,6 +454,27 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         return HookResult.Continue;
     }
 
+    private HookResult OnRespawnSpawn(EventPlayerSpawn @event, GameEventInfo info)
+    {
+        if (_activeEvent != EventType.RespawnRound) return HookResult.Continue;
+
+        var player = @event.Userid;
+        if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
+
+        // Give random weapon on respawn
+        AddTimer(0.1f, () =>
+        {
+            if (!IsPlayerValid(player)) return;
+            player.RemoveWeapons();
+            player.GiveNamedItem("weapon_knife");
+            string weapon = RandomWeapons[_random.Next(RandomWeapons.Count)];
+            try { player.GiveNamedItem(weapon); }
+            catch { /* ignore */ }
+        });
+
+        return HookResult.Continue;
+    }
+
     private void StartHERefillTimer()
     {
         _heRefillTimer?.Kill();
@@ -555,6 +578,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath, HookMode.Post);
                 _deathHandlerRegistered = false;
             }
+            if (_spawnHandlerRegistered)
+            {
+                DeregisterEventHandler<EventPlayerSpawn>(OnRespawnSpawn, HookMode.Post);
+                _spawnHandlerRegistered = false;
+            }
         }
         catch (Exception ex)
         {
@@ -567,7 +595,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetNospread(false);
         SetBhop(false);
         ResetAllPlayersVisibility();
-        Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0");
+        Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0");
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetMaxHealth();
