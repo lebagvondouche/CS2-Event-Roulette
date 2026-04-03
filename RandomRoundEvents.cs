@@ -29,6 +29,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public bool EnableSpeedRandomizer { get; set; } = true;
     public bool EnableLastManStanding { get; set; } = true;
     public bool EnablePowerUpRound { get; set; } = true;
+    public bool EnableTankRound { get; set; } = true;
 
     // Event settings
     public float LowGravityValue { get; set; } = 400.0f;
@@ -44,6 +45,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public int DoubleDamageMultiplier { get; set; } = 2;
     public int ZeusRechargeTime { get; set; } = 5;
     public bool EnableBomb { get; set; } = false;
+    public int TankHP { get; set; } = 500;
 
     // Chaos round
     public int ChaosRoundChance { get; set; } = 15; // percentage chance (0-100)
@@ -96,6 +98,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SpeedRandomizer,
         LastManStanding,
         PowerUpRound,
+        TankRound,
         ChaosRound
     }
 
@@ -123,6 +126,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Config.PowerUpHP = Math.Clamp(Config.PowerUpHP, 100, 1000);
         Config.DoubleDamageMultiplier = Math.Clamp(Config.DoubleDamageMultiplier, 2, 10);
         Config.ZeusRechargeTime = Math.Clamp(Config.ZeusRechargeTime, 0, 30);
+        Config.TankHP = Math.Clamp(Config.TankHP, 200, 1000);
         Config.ChaosRoundChance = Math.Clamp(Config.ChaosRoundChance, 0, 100);
 
         Logger.LogInformation("[RandomRoundEvents] Configuration loaded.");
@@ -154,6 +158,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_speed", "Trigger Speed Randomizer event", OnSpeedRandomizerCommand);
         AddCommand("css_rre_lastman", "Trigger Last Man Standing event", OnLastManStandingCommand);
         AddCommand("css_rre_powerup", "Trigger Power-Up Round event", OnPowerUpRoundCommand);
+        AddCommand("css_rre_tank", "Trigger Tank Round event", OnTankRoundCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
         AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
         AddCommand("css_rre_chaos", "Trigger Chaos Round", OnChaosRoundCommand);
@@ -210,6 +215,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (Config.EnableSpeedRandomizer) enabledEvents.Add(EventType.SpeedRandomizer);
         if (Config.EnableLastManStanding) enabledEvents.Add(EventType.LastManStanding);
         if (Config.EnablePowerUpRound) enabledEvents.Add(EventType.PowerUpRound);
+        if (Config.EnableTankRound) enabledEvents.Add(EventType.TankRound);
 
         if (enabledEvents.Count == 0)
         {
@@ -274,11 +280,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs();
                 break;
             case EventType.KnifeOnly:
-                AnnounceEvent("Knife-Only Round", "Knives out! Pure melee combat.");
+                AnnounceEvent("Knife-Only Round", "Knives out! Bhop enabled!");
+                SetBhop(true);
                 StripAllWeapons(); GiveAllPlayersKnives();
                 break;
             case EventType.ZeusOnly:
-                AnnounceEvent("Zeus-Only Round", "Zeus only. One zap and they're down!");
+                AnnounceEvent("Zeus-Only Round", "Zeus only. Bhop enabled!");
+                SetBhop(true);
                 Server.ExecuteCommand($"mp_taser_recharge_time {Config.ZeusRechargeTime}");
                 StripAllWeapons(); GiveAllPlayersZeus();
                 break;
@@ -305,6 +313,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StartHERefillTimer();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); GiveAllPlayersMolotov();
+                break;
+            case EventType.TankRound:
+                AnnounceEvent("Tank Round", $"{Config.TankHP} HP, full armor, shotguns only. Bullet sponge!");
+                StripAllWeapons(); GiveAllPlayersKnives();
+                SetAllPlayersHealth(Config.TankHP);
+                GiveAllPlayersFullArmor();
+                GiveAllPlayersShotgun();
                 break;
             case EventType.ChaosRound:
                 ApplyChaosRound();
@@ -481,6 +496,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _currentGravity = 800.0f;
         SetGravity(800.0f);
         SetNospread(false);
+        SetBhop(false);
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetMaxHealth();
@@ -644,6 +660,17 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     {
         foreach (var player in Utilities.GetPlayers())
             if (IsPlayerValid(player)) player.GiveNamedItem("weapon_deagle");
+    }
+
+    private void GiveAllPlayersShotgun()
+    {
+        string[] shotguns = { "weapon_nova", "weapon_xm1014", "weapon_mag7" };
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player)) continue;
+            string shotgun = shotguns[_random.Next(shotguns.Length)];
+            player.GiveNamedItem(shotgun);
+        }
     }
 
     private void GiveAllPlayersFullArmor()
@@ -839,6 +866,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Server.ExecuteCommand("mp_buy_allow_guns 255; mp_buy_allow_grenades 1; mp_max_armor 2; mp_weapons_allow_zeus -1");
     }
 
+    private static void SetBhop(bool enabled)
+    {
+        Server.ExecuteCommand(enabled
+            ? "sv_autobunnyhopping 1; sv_enablebunnyhopping 1"
+            : "sv_autobunnyhopping 0; sv_enablebunnyhopping 0");
+    }
+
     private void StartGravitySwitch()
     {
         _gravitySwitchTimer?.Kill();
@@ -872,6 +906,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnSpeedRandomizerCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.SpeedRandomizer);
     private void OnLastManStandingCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.LastManStanding);
     private void OnPowerUpRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.PowerUpRound);
+    private void OnTankRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.TankRound);
     private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ChaosRound);
 
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
@@ -892,6 +927,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         menu.AddMenuOption("Speed Randomizer", (p, _) => { OnSpeedRandomizerCommand(p, command); });
         menu.AddMenuOption("Last Man Standing", (p, _) => { OnLastManStandingCommand(p, command); });
         menu.AddMenuOption("Power-Up Round", (p, _) => { OnPowerUpRoundCommand(p, command); });
+        menu.AddMenuOption("Tank Round", (p, _) => { OnTankRoundCommand(p, command); });
         menu.AddMenuOption("Chaos Round", (p, _) => { OnChaosRoundCommand(p, command); });
         menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });
 
