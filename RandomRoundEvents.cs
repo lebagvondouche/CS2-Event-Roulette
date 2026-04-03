@@ -71,6 +71,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private CounterStrikeSharp.API.Modules.Timers.Timer? _speedEnforceTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _swapTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _heRefillTimer;
+    private CounterStrikeSharp.API.Modules.Timers.Timer? _noReloadTimer;
     private readonly Dictionary<int, float> _playerSpeeds = new();
     private bool _isLoaded = false;
     private bool _roundEventTriggered = false;
@@ -295,6 +296,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
                 RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post); _itemPickupHandlerRegistered = true;
                 ApplyNoReload();
+                StartNoReloadTimer();
                 break;
             case EventType.GravitySwitch:
                 AnnounceEvent("Gravity Switch Round", "Gravity flips between low and high every 5 seconds!");
@@ -543,6 +545,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _speedEnforceTimer?.Kill();
         _swapTimer?.Kill();
         _heRefillTimer?.Kill();
+        _noReloadTimer?.Kill();
         _playerSpeeds.Clear();
 
         try
@@ -857,6 +860,27 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 weapon.ReserveAmmo[0] = 0;
             }
         }
+    }
+
+    private void StartNoReloadTimer()
+    {
+        _noReloadTimer?.Kill();
+        _noReloadTimer = AddTimer(0.5f, () =>
+        {
+            foreach (var player in Utilities.GetPlayers())
+            {
+                if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+                var weapons = player.PlayerPawn.Value.WeaponServices?.MyWeapons;
+                if (weapons == null) continue;
+                foreach (var weaponHandle in weapons)
+                {
+                    var weapon = weaponHandle.Value;
+                    if (weapon == null) continue;
+                    if (weapon.ReserveAmmo[0] > 0)
+                        weapon.ReserveAmmo[0] = 0;
+                }
+            }
+        }, TimerFlags.REPEAT);
     }
 
     private void ApplyChaosRound()
