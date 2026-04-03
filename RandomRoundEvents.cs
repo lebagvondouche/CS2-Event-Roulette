@@ -102,6 +102,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private EventType _activeEvent = EventType.None;
     private EventType _forcedEvent = EventType.None;
     private bool _chaosDoubleDamage = false;
+    private bool _hurtHandlerRegistered = false;
+    private bool _weaponFireHandlerRegistered = false;
+    private bool _itemPickupHandlerRegistered = false;
 
     public void OnConfigParsed(RandomRoundEventsConfig config)
     {
@@ -248,7 +251,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.HeadshotOnly:
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
-                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersDeagle();
                 break;
             case EventType.RandomWeapon:
@@ -257,7 +260,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.DoubleDamage:
                 AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
-                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersGlock();
                 break;
             case EventType.SwapTeams:
@@ -267,8 +270,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.FlashbangSpam:
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. One flash and you're dead!");
                 StartFlashbangSpamRound();
-                RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                RegisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post); _weaponFireHandlerRegistered = true;
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs();
                 break;
             case EventType.KnifeOnly:
@@ -282,7 +285,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.NoReload:
                 AnnounceEvent("No Reload Round", "One magazine only. Make every bullet count!");
-                RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
+                RegisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post); _itemPickupHandlerRegistered = true;
                 ApplyNoReload();
                 break;
             case EventType.GravitySwitch:
@@ -301,7 +304,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", "300 HP, full armor, and HE grenades. Go wild!");
                 StartHERefillTimer();
-                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE();
                 break;
             case EventType.ChaosRound:
@@ -455,12 +458,21 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         try
         {
-            if (_activeEvent == EventType.HeadshotOnly || _activeEvent == EventType.DoubleDamage || _chaosDoubleDamage || _activeEvent == EventType.PowerUpRound || _activeEvent == EventType.FlashbangSpam)
+            if (_hurtHandlerRegistered)
+            {
                 DeregisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
-            if (_activeEvent == EventType.FlashbangSpam)
+                _hurtHandlerRegistered = false;
+            }
+            if (_weaponFireHandlerRegistered)
+            {
                 DeregisterEventHandler<EventWeaponFire>(OnWeaponFire, HookMode.Post);
-            if (_activeEvent == EventType.NoReload)
+                _weaponFireHandlerRegistered = false;
+            }
+            if (_itemPickupHandlerRegistered)
+            {
                 DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
+                _itemPickupHandlerRegistered = false;
+            }
         }
         catch (Exception ex)
         {
@@ -738,7 +750,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (_random.Next(100) < 40)
         {
             _chaosDoubleDamage = true;
-            RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post);
+            RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
             mods.Add($"{Config.DoubleDamageMultiplier}x damage");
         }
 
