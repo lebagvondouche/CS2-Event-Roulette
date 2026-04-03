@@ -255,7 +255,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = selectedEvent;
 
         // Enable buying only for events that allow it
-        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.NoReload || selectedEvent == EventType.RespawnRound)
+        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.NoReload)
             EnableBuying();
         else
             DisableBuying();
@@ -462,7 +462,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (player == null || !IsPlayerValid(player)) return HookResult.Continue;
 
         // Give random weapon on respawn
-        AddTimer(0.1f, () =>
+        AddTimer(0.5f, () =>
         {
             if (!IsPlayerValid(player)) return;
             player.RemoveWeapons();
