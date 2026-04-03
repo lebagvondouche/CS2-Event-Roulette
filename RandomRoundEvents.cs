@@ -310,7 +310,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersPistols();
                 break;
             case EventType.PowerUpRound:
-                AnnounceEvent("Power-Up Round", "300 HP, full armor, unlimited HE. Knife does no damage!");
+                AnnounceEvent("Power-Up Round", $"{Config.PowerUpHP} HP, full armor, unlimited HE. Knife does no damage!");
                 StartHERefillTimer();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); GiveAllPlayersMolotov();
