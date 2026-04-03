@@ -181,12 +181,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     public override void Unload(bool hotReload)
     {
-        _gravitySwitchTimer?.Kill();
-        _flashbangSpamTimer?.Kill();
-        _gravityMonitorTimer?.Kill();
-        _speedEnforceTimer?.Kill();
-        _swapTimer?.Kill();
-        _heRefillTimer?.Kill();
+        ResetAllState();
         _isLoaded = false;
         _roundEventTriggered = false;
         base.Unload(hotReload);
@@ -204,14 +199,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         if (_roundEventTriggered)
             return HookResult.Continue;
-
-        _gravitySwitchTimer?.Kill();
-        _flashbangSpamTimer?.Kill();
-        _gravityMonitorTimer?.Kill();
-        _speedEnforceTimer?.Kill();
-        _swapTimer?.Kill();
-        _heRefillTimer?.Kill();
-        _playerSpeeds.Clear();
 
         var enabledEvents = new List<EventType>();
         if (Config.EnableLowGravity) enabledEvents.Add(EventType.LowGravity);
@@ -402,8 +389,19 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         {
             // Apply extra damage — just reduce health, don't call CommitSuicide
             int extraDamage = @event.DmgHealth * (Config.DoubleDamageMultiplier - 1);
-            pawn.Health = Math.Max(0, pawn.Health - extraDamage);
+            int newHealth = Math.Max(0, pawn.Health - extraDamage);
+            pawn.Health = newHealth;
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+
+            // If extra damage would kill, set health to 1 so next tick/damage finishes them
+            // Setting to 0 alone doesn't trigger engine death
+            if (newHealth <= 0)
+            {
+                pawn.Health = 0;
+                pawn.LifeState = (byte)1; // LIFE_DYING
+                Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+                Utilities.SetStateChanged(pawn, "CBaseEntity", "m_lifeState");
+            }
         }
 
         return HookResult.Continue;
@@ -577,6 +575,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         _chaosDoubleDamage = false;
         _currentGravity = 800.0f;
+        _tRespawns = 0;
+        _ctRespawns = 0;
         SetGravity(800.0f);
         SetNospread(false);
         SetBhop(false);

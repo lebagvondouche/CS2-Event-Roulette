@@ -4,21 +4,24 @@ A Counter-Strike 2 plugin that triggers random events each round. Built with Cou
 
 ## Features
 
-14 events + Chaos Round, each announced with a description in chat:
+17 events + Chaos Round, each announced with a description in chat:
 
 - **Low Gravity** — Scout + Zeus, perfect accuracy, low gravity, fast zeus recharge.
 - **Juan Deag** — Knife + Deagle, headshots only. Body shots deal no damage.
 - **Random Weapon** — Everyone gets a random weapon.
 - **Double Damage** — Glock only, all damage multiplied (configurable).
-- **Team Swap** — A random pair of human players swaps teams every 30s (configurable). First swap after 30s.
-- **Flashbang Spam** — Low HP (configurable), knife + flashbangs only. Knife does no damage. Auto-refill every 1s.
-- **Knife-Only** — Pure melee combat.
-- **Zeus-Only** — Zeus taser only, fast recharge (configurable).
+- **Team Swap** — A random pair of human players swaps teams every 30s (configurable).
+- **Flashbang Spam** — Low HP (configurable), knife + flashbangs only. Knife does no damage. Auto-refill.
+- **Knife-Only** — Pure melee combat. Bhop enabled.
+- **Zeus-Only** — Zeus taser only, fast recharge (configurable). Bhop enabled.
 - **No Reload** — One magazine, no reserve ammo. Buying enabled.
 - **Gravity Switch** — Gravity flips between low and high at a configurable interval. Buying enabled.
 - **Speed Randomizer** — Each player gets a random speed multiplier, shown in chat. Buying enabled.
 - **Last Man Standing** — Knife + random pistol only.
-- **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE grenades. Knife does no damage.
+- **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE + molotov. Knife does no damage.
+- **Tank Round** — High HP (configurable), full armor + helmet, random shotgun.
+- **Invisible Round** — All players are invisible. Listen for footsteps.
+- **Respawn Round** — Each team has a shared pool of respawns. Random weapon on spawn. Random spawn locations.
 - **Chaos Round** — Random mix of gravity, speed, damage, accuracy, and weapon. Every chaos round is different.
 
 All events:
@@ -64,6 +67,9 @@ Edit `addons/counterstrikesharp/configs/plugins/RandomRoundEvents/RandomRoundEve
   "EnableSpeedRandomizer": true,
   "EnableLastManStanding": true,
   "EnablePowerUpRound": true,
+  "EnableTankRound": true,
+  "EnableInvisibleRound": true,
+  "EnableRespawnRound": true,
 
   "LowGravityValue": 400,
   "GravitySwitchLow": 400,
@@ -78,6 +84,8 @@ Edit `addons/counterstrikesharp/configs/plugins/RandomRoundEvents/RandomRoundEve
   "DoubleDamageMultiplier": 2,
   "ZeusRechargeTime": 5,
   "EnableBomb": false,
+  "TankHP": 500,
+  "RespawnPool": 10,
   "ChaosRoundChance": 15
 }
 ```
@@ -103,6 +111,8 @@ Set any `Enable*` option to `false` to remove that event from the random pool.
 | DoubleDamageMultiplier | 2 | 2–10 | Damage multiplier |
 | ZeusRechargeTime | 5 | 0–30 | Zeus recharge seconds (0 = instant) |
 | EnableBomb | false | true/false | Give C4 to a random T after weapon strip |
+| TankHP | 500 | 200–1000 | HP for Tank round |
+| RespawnPool | 10 | 1–50 | Shared respawns per team |
 | ChaosRoundChance | 15 | 0–100 | Percentage chance of Chaos Round (0 to disable) |
 
 ## Commands
@@ -125,6 +135,9 @@ All commands require `@css/root` admin permission. Use in chat with `!` or `/` p
 | `!rre_speed` | Speed Randomizer |
 | `!rre_lastman` | Last Man Standing |
 | `!rre_powerup` | Power-Up Round |
+| `!rre_tank` | Tank Round |
+| `!rre_invisible` | Invisible Round |
+| `!rre_respawn` | Respawn Round |
 | `!rre_chaos` | Chaos Round |
 | `!rre_reset` | Reset all events |
 
@@ -148,5 +161,5 @@ CC BY-NC 4.0 — free to fork and modify, no commercial use. See [LICENSE](../LI
 ---
 
 **Author:** Martin Persson
-**Version:** 0.2
+**Version:** 0.5
 **License:** CC BY-NC 4.0
