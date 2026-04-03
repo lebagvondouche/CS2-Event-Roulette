@@ -345,7 +345,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
         }
 
-        if ((_activeEvent == EventType.PowerUpRound || _activeEvent == EventType.FlashbangSpam) && @event.Weapon == "weapon_knife")
+        if ((_activeEvent == EventType.PowerUpRound || _activeEvent == EventType.FlashbangSpam) && 
+            (@event.Weapon.Contains("knife") || @event.Weapon.Contains("bayonet")))
         {
             // Heal back knife damage
             int dmg = @event.DmgHealth;
