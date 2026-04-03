@@ -16,15 +16,17 @@
   "EnableLastManStanding": true,
   "EnablePowerUpRound": true,
 
-  "LowGravityValue": 400,
+  "LowGravityValue": 200,
   "GravitySwitchLow": 400,
   "GravitySwitchHigh": 1200,
   "GravitySwitchInterval": 5,
   "SpeedMin": 0.1,
-  "SpeedMax": 2.0,
+  "SpeedMax": 2.5,
   "SwapInterval": 30,
   "FlashbangStartHP": 1,
   "FlashbangRefillInterval": 3,
   "PowerUpHP": 300,
-  "DoubleDamageMultiplier": 2
-}
+  "DoubleDamageMultiplier": 2,
+  "ZeusRechargeTime": 3,
+  "EnableBomb": true,
+  "ChaosRoundChance": 10}

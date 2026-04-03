@@ -4,33 +4,36 @@ A Counter-Strike 2 plugin that triggers random events each round. Built with Cou
 
 ## Features
 
-14 events, each announced with a description in chat:
+14 events + Chaos Round, each announced with a description in chat:
 
-- **Low Gravity** — Scout + Zeus, perfect accuracy, low gravity. No buying.
+- **Low Gravity** — Scout + Zeus, perfect accuracy, low gravity, fast zeus recharge.
 - **Juan Deag** — Knife + Deagle, headshots only. Body shots deal no damage.
 - **Random Weapon** — Everyone gets a random weapon.
 - **Double Damage** — Glock only, all damage multiplied (configurable).
-- **Team Swap** — A random pair of human players swaps teams every 30 seconds (configurable).
-- **Flashbang Spam** — 1 HP (configurable), flashbangs only, auto-refill.
+- **Team Swap** — A random pair of human players swaps teams every 30s (configurable). First swap after 30s.
+- **Flashbang Spam** — Low HP (configurable), knife + flashbangs only. Knife does no damage. Auto-refill every 1s.
 - **Knife-Only** — Pure melee combat.
-- **Zeus-Only** — Zeus taser only, no knife.
-- **No Reload** — One magazine, no reserve ammo. Every bullet counts.
-- **Gravity Switch** — Gravity flips between low and high at a configurable interval.
-- **Speed Randomizer** — Each player gets a random speed multiplier, shown in chat.
-- **Last Man Standing** — Random pistol only.
-- **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE grenades.
+- **Zeus-Only** — Zeus taser only, fast recharge (configurable).
+- **No Reload** — One magazine, no reserve ammo. Buying enabled.
+- **Gravity Switch** — Gravity flips between low and high at a configurable interval. Buying enabled.
+- **Speed Randomizer** — Each player gets a random speed multiplier, shown in chat. Buying enabled.
+- **Last Man Standing** — Knife + random pistol only.
+- **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE grenades. Knife does no damage.
 - **Chaos Round** — Random mix of gravity, speed, damage, accuracy, and weapon. Every chaos round is different.
 
 All events:
-- Block all purchases (guns, grenades, armor, zeus)
+- Block purchases where appropriate (some events allow buying)
 - Strip weapons where needed (no carryover between rounds)
 - Clean up fully on round end (gravity, speed, nospread, timers, handlers)
-- Skip during warmup
+- Skip during warmup (unless admin forces an event)
 - Announce with a title and description in chat
+- Optionally give bomb back to a random T (`EnableBomb` config)
 
 ## Admin Menu
 
 Type `!rre_menu` in chat (requires `@css/root` admin) to open an in-game menu to pick any event.
+
+Admin commands queue the event for the next round (announced in chat).
 
 ## Installation
 
@@ -73,6 +76,8 @@ Edit `addons/counterstrikesharp/configs/plugins/RandomRoundEvents/RandomRoundEve
   "FlashbangRefillInterval": 3,
   "PowerUpHP": 300,
   "DoubleDamageMultiplier": 2,
+  "ZeusRechargeTime": 5,
+  "EnableBomb": false,
   "ChaosRoundChance": 15
 }
 ```
@@ -96,11 +101,13 @@ Set any `Enable*` option to `false` to remove that event from the random pool.
 | FlashbangRefillInterval | 3 | 1–30 | Seconds between flashbang refills |
 | PowerUpHP | 300 | 100–1000 | HP for Power-Up round |
 | DoubleDamageMultiplier | 2 | 2–10 | Damage multiplier |
+| ZeusRechargeTime | 5 | 0–30 | Zeus recharge seconds (0 = instant) |
+| EnableBomb | false | true/false | Give C4 to a random T after weapon strip |
 | ChaosRoundChance | 15 | 0–100 | Percentage chance of Chaos Round (0 to disable) |
 
 ## Commands
 
-All commands require `@css/root` admin permission. Use in chat with `!` or `/` prefix.
+All commands require `@css/root` admin permission. Use in chat with `!` or `/` prefix. Commands queue the event for the next round.
 
 | Command | Description |
 |---------|-------------|
@@ -141,5 +148,5 @@ CC BY-NC 4.0 — free to fork and modify, no commercial use. See [LICENSE](../LI
 ---
 
 **Author:** Martin Persson
-**Version:** 1.3
+**Version:** 0.2
 **License:** CC BY-NC 4.0
