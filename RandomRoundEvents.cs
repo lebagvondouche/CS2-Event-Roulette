@@ -6,6 +6,7 @@ using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Menu;
+using System.Drawing;
 using Microsoft.Extensions.Logging;
 
 namespace RandomRoundEvents;
@@ -30,6 +31,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public bool EnableLastManStanding { get; set; } = true;
     public bool EnablePowerUpRound { get; set; } = true;
     public bool EnableTankRound { get; set; } = true;
+    public bool EnableInvisibleRound { get; set; } = true;
 
     // Event settings
     public float LowGravityValue { get; set; } = 400.0f;
@@ -99,6 +101,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         LastManStanding,
         PowerUpRound,
         TankRound,
+        InvisibleRound,
         ChaosRound
     }
 
@@ -159,6 +162,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_lastman", "Trigger Last Man Standing event", OnLastManStandingCommand);
         AddCommand("css_rre_powerup", "Trigger Power-Up Round event", OnPowerUpRoundCommand);
         AddCommand("css_rre_tank", "Trigger Tank Round event", OnTankRoundCommand);
+        AddCommand("css_rre_invisible", "Trigger Invisible Round event", OnInvisibleRoundCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
         AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
         AddCommand("css_rre_chaos", "Trigger Chaos Round", OnChaosRoundCommand);
@@ -216,6 +220,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (Config.EnableLastManStanding) enabledEvents.Add(EventType.LastManStanding);
         if (Config.EnablePowerUpRound) enabledEvents.Add(EventType.PowerUpRound);
         if (Config.EnableTankRound) enabledEvents.Add(EventType.TankRound);
+        if (Config.EnableInvisibleRound) enabledEvents.Add(EventType.InvisibleRound);
 
         if (enabledEvents.Count == 0)
         {
@@ -320,6 +325,10 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 SetAllPlayersHealth(Config.TankHP);
                 GiveAllPlayersFullArmor();
                 GiveAllPlayersShotgun();
+                break;
+            case EventType.InvisibleRound:
+                AnnounceEvent("Invisible Round", "Everyone is invisible! Listen for footsteps!");
+                SetAllPlayersInvisible();
                 break;
             case EventType.ChaosRound:
                 ApplyChaosRound();
@@ -497,6 +506,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetGravity(800.0f);
         SetNospread(false);
         SetBhop(false);
+        ResetAllPlayersVisibility();
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetMaxHealth();
@@ -709,6 +719,26 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         }
     }
 
+    private void SetAllPlayersInvisible()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            player.PlayerPawn.Value.Render = Color.FromArgb(0, 255, 255, 255);
+            Utilities.SetStateChanged(player.PlayerPawn.Value, "CBaseModelEntity", "m_clrRender");
+        }
+    }
+
+    private void ResetAllPlayersVisibility()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (player.PlayerPawn.Value == null) continue;
+            player.PlayerPawn.Value.Render = Color.FromArgb(255, 255, 255, 255);
+            Utilities.SetStateChanged(player.PlayerPawn.Value, "CBaseModelEntity", "m_clrRender");
+        }
+    }
+
     private void RandomizeAllPlayersSpeed()
     {
         _playerSpeeds.Clear();
@@ -907,6 +937,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnLastManStandingCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.LastManStanding);
     private void OnPowerUpRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.PowerUpRound);
     private void OnTankRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.TankRound);
+    private void OnInvisibleRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.InvisibleRound);
     private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ChaosRound);
 
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
@@ -928,6 +959,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         menu.AddMenuOption("Last Man Standing", (p, _) => { OnLastManStandingCommand(p, command); });
         menu.AddMenuOption("Power-Up Round", (p, _) => { OnPowerUpRoundCommand(p, command); });
         menu.AddMenuOption("Tank Round", (p, _) => { OnTankRoundCommand(p, command); });
+        menu.AddMenuOption("Invisible Round", (p, _) => { OnInvisibleRoundCommand(p, command); });
         menu.AddMenuOption("Chaos Round", (p, _) => { OnChaosRoundCommand(p, command); });
         menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });
 
