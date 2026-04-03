@@ -32,6 +32,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public bool EnablePowerUpRound { get; set; } = true;
     public bool EnableTankRound { get; set; } = true;
     public bool EnableInvisibleRound { get; set; } = true;
+    public bool EnableRespawnRound { get; set; } = true;
 
     // Event settings
     public float LowGravityValue { get; set; } = 400.0f;
@@ -48,6 +49,7 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public int ZeusRechargeTime { get; set; } = 5;
     public bool EnableBomb { get; set; } = false;
     public int TankHP { get; set; } = 500;
+    public int RespawnPool { get; set; } = 10;
 
     // Chaos round
     public int ChaosRoundChance { get; set; } = 15; // percentage chance (0-100)
@@ -102,6 +104,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         PowerUpRound,
         TankRound,
         InvisibleRound,
+        RespawnRound,
         ChaosRound
     }
 
@@ -111,6 +114,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private bool _hurtHandlerRegistered = false;
     private bool _weaponFireHandlerRegistered = false;
     private bool _itemPickupHandlerRegistered = false;
+    private bool _deathHandlerRegistered = false;
+    private int _tRespawns = 0;
+    private int _ctRespawns = 0;
 
     public void OnConfigParsed(RandomRoundEventsConfig config)
     {
@@ -130,6 +136,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Config.DoubleDamageMultiplier = Math.Clamp(Config.DoubleDamageMultiplier, 2, 10);
         Config.ZeusRechargeTime = Math.Clamp(Config.ZeusRechargeTime, 0, 30);
         Config.TankHP = Math.Clamp(Config.TankHP, 200, 1000);
+        Config.RespawnPool = Math.Clamp(Config.RespawnPool, 1, 50);
         Config.ChaosRoundChance = Math.Clamp(Config.ChaosRoundChance, 0, 100);
 
         Logger.LogInformation("[RandomRoundEvents] Configuration loaded.");
@@ -163,6 +170,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_powerup", "Trigger Power-Up Round event", OnPowerUpRoundCommand);
         AddCommand("css_rre_tank", "Trigger Tank Round event", OnTankRoundCommand);
         AddCommand("css_rre_invisible", "Trigger Invisible Round event", OnInvisibleRoundCommand);
+        AddCommand("css_rre_respawn", "Trigger Respawn Round event", OnRespawnRoundCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
         AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
         AddCommand("css_rre_chaos", "Trigger Chaos Round", OnChaosRoundCommand);
@@ -221,6 +229,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (Config.EnablePowerUpRound) enabledEvents.Add(EventType.PowerUpRound);
         if (Config.EnableTankRound) enabledEvents.Add(EventType.TankRound);
         if (Config.EnableInvisibleRound) enabledEvents.Add(EventType.InvisibleRound);
+        if (Config.EnableRespawnRound) enabledEvents.Add(EventType.RespawnRound);
 
         if (enabledEvents.Count == 0)
         {
@@ -245,7 +254,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = selectedEvent;
 
         // Enable buying only for events that allow it
-        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.NoReload)
+        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.NoReload || selectedEvent == EventType.RespawnRound)
             EnableBuying();
         else
             DisableBuying();
@@ -330,6 +339,13 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Invisible Round", "Everyone is invisible! Listen for footsteps!");
                 SetAllPlayersInvisible();
                 break;
+            case EventType.RespawnRound:
+                AnnounceEvent("Respawn Round", $"Each team has {Config.RespawnPool} shared respawns!");
+                _tRespawns = Config.RespawnPool;
+                _ctRespawns = Config.RespawnPool;
+                Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0");
+                RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath, HookMode.Post); _deathHandlerRegistered = true;
+                break;
             case EventType.ChaosRound:
                 ApplyChaosRound();
                 break;
@@ -394,6 +410,45 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private HookResult OnWeaponFire(EventWeaponFire @event, GameEventInfo info)
     {
+        return HookResult.Continue;
+    }
+
+    private HookResult OnPlayerDeath(EventPlayerDeath @event, GameEventInfo info)
+    {
+        if (_activeEvent != EventType.RespawnRound) return HookResult.Continue;
+
+        var victim = @event.Userid;
+        if (victim == null || !victim.IsValid) return HookResult.Continue;
+
+        if (victim.Team == CsTeam.Terrorist)
+        {
+            _tRespawns--;
+            if (_tRespawns <= 0)
+            {
+                _tRespawns = 0;
+                Server.ExecuteCommand("mp_respawn_on_death_t 0");
+                Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.Red} T team has no respawns left!");
+            }
+            else
+            {
+                Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} T respawns remaining: {ChatColors.Green}{_tRespawns}");
+            }
+        }
+        else if (victim.Team == CsTeam.CounterTerrorist)
+        {
+            _ctRespawns--;
+            if (_ctRespawns <= 0)
+            {
+                _ctRespawns = 0;
+                Server.ExecuteCommand("mp_respawn_on_death_ct 0");
+                Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.Red} CT team has no respawns left!");
+            }
+            else
+            {
+                Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} CT respawns remaining: {ChatColors.Green}{_ctRespawns}");
+            }
+        }
+
         return HookResult.Continue;
     }
 
@@ -495,6 +550,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 DeregisterEventHandler<EventItemPickup>(OnItemPickup, HookMode.Post);
                 _itemPickupHandlerRegistered = false;
             }
+            if (_deathHandlerRegistered)
+            {
+                DeregisterEventHandler<EventPlayerDeath>(OnPlayerDeath, HookMode.Post);
+                _deathHandlerRegistered = false;
+            }
         }
         catch (Exception ex)
         {
@@ -507,6 +567,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetNospread(false);
         SetBhop(false);
         ResetAllPlayersVisibility();
+        Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0");
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
         ResetMaxHealth();
@@ -938,6 +999,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnPowerUpRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.PowerUpRound);
     private void OnTankRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.TankRound);
     private void OnInvisibleRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.InvisibleRound);
+    private void OnRespawnRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.RespawnRound);
     private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ChaosRound);
 
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
@@ -960,6 +1022,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         menu.AddMenuOption("Power-Up Round", (p, _) => { OnPowerUpRoundCommand(p, command); });
         menu.AddMenuOption("Tank Round", (p, _) => { OnTankRoundCommand(p, command); });
         menu.AddMenuOption("Invisible Round", (p, _) => { OnInvisibleRoundCommand(p, command); });
+        menu.AddMenuOption("Respawn Round", (p, _) => { OnRespawnRoundCommand(p, command); });
         menu.AddMenuOption("Chaos Round", (p, _) => { OnChaosRoundCommand(p, command); });
         menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });
 
