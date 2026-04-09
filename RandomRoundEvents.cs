@@ -262,7 +262,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersDeagle();
-                Server.ExecuteCommand("sv_infinite_ammo 2");
+                var infiniteAmmo = ConVar.Find("sv_infinite_ammo");
+                if (infiniteAmmo != null) infiniteAmmo.SetValue(2);
                 break;
             case EventType.RandomWeapon:
                 AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
@@ -591,7 +592,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0; mp_buytime 20");
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
-        Server.ExecuteCommand("sv_infinite_ammo 0");
+        var infiniteAmmo = ConVar.Find("sv_infinite_ammo");
+        if (infiniteAmmo != null) infiniteAmmo.SetValue(0);
         Server.ExecuteCommand("mp_death_drop_gun 0");
         ResetMaxHealth();
         _activeEvent = EventType.None;
