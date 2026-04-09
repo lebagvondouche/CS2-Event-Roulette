@@ -11,7 +11,6 @@ bin/
 *.user
 *.userosscache
 *.sln.docstates
-
 .kiro/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
@@ -395,9 +394,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
-
-# build-script
-build.ps1
 
 # Kiro workspace
 .kiro/
