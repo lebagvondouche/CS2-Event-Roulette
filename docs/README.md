@@ -42,8 +42,24 @@ Admin commands queue the event for the next round (announced in chat).
 
 1. Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html) + Metamod on your CS2 server.
 2. Download the latest release from the [Releases page](https://github.com/lebagvondouche/CS2-Event-Roulette/releases).
-3. Extract the `RandomRoundEvents` folder into `addons/counterstrikesharp/plugins/`.
+3. Extract the `RandomRoundEvents` folder into your server's plugin directory.
 4. Restart the server. Config auto-generates on first load.
+
+### Server folder structure
+
+```
+csgo/
+└── addons/
+    └── counterstrikesharp/
+        ├── plugins/
+        │   └── RandomRoundEvents/          ← plugin DLL goes here
+        │       ├── RandomRoundEvents.dll
+        │       └── RandomRoundEvents.deps.json
+        └── configs/
+            └── plugins/
+                └── RandomRoundEvents/
+                    └── RandomRoundEvents.json  ← config (auto-generated on first load)
+```
 
 ## Configuration
 
