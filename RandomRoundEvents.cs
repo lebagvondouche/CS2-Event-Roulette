@@ -316,6 +316,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.PowerUpRound:
                 AnnounceEvent("Power-Up Round", $"{Config.PowerUpHP} HP, full armor, unlimited HE. Knife does no damage!");
+                Server.ExecuteCommand("mp_friendlyfire 0");
                 StartHERefillTimer();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.PowerUpHP); GiveAllPlayersFullArmor(); GiveAllPlayersUnlimitedHE(); GiveAllPlayersMolotov();
@@ -329,7 +330,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StartAmmoRefillTimer();
                 break;
             case EventType.InvisibleRound:
-                AnnounceEvent("Invisible Round", "Everyone is invisible! Listen for footsteps!");
+                AnnounceEvent("Invisible Round", "Everyone is invisible! No friendly fire!");
+                Server.ExecuteCommand("mp_friendlyfire 0");
                 SetAllPlayersInvisible();
                 break;
             case EventType.RespawnRound:
@@ -590,7 +592,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         ResetAllPlayersVisibility();
         Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0; mp_buytime 20");
         EnableBuying();
-        Server.ExecuteCommand("mp_taser_recharge_time 30; sv_infinite_ammo 0");
+        Server.ExecuteCommand("mp_taser_recharge_time 30; sv_infinite_ammo 0; mp_friendlyfire 1");
         Server.ExecuteCommand("mp_death_drop_gun 0");
         ResetMaxHealth();
         _activeEvent = EventType.None;
