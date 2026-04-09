@@ -330,8 +330,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 StartAmmoRefillTimer();
                 break;
             case EventType.InvisibleRound:
-                AnnounceEvent("Invisible Round", "Everyone is invisible! No friendly fire!");
+                AnnounceEvent("Invisible Round", "Everyone is invisible! Knife only, no friendly fire!");
                 Server.ExecuteCommand("mp_friendlyfire 0");
+                StripAllWeapons(); GiveAllPlayersKnives();
                 SetAllPlayersInvisible();
                 break;
             case EventType.RespawnRound:
