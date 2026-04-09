@@ -262,10 +262,12 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Juan Deag Round", "Deagle only, headshots only. One tap or nothing!");
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
                 StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersDeagle();
+                Server.ExecuteCommand("sv_infinite_ammo 2");
                 break;
             case EventType.RandomWeapon:
                 AnnounceEvent("Random Weapon Round", "Everyone gets a random weapon. Good luck!");
-                StripAllWeapons(); GiveAllPlayersRandomWeapons();
+                Server.ExecuteCommand("mp_death_drop_gun 1");
+                StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersRandomWeapons();
                 break;
             case EventType.DoubleDamage:
                 AnnounceEvent("Double Damage Round", "All damage is doubled. Play it safe!");
@@ -334,7 +336,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Respawn Round", $"Each team has {Config.RespawnPool} shared respawns!");
                 _tRespawns = Config.RespawnPool;
                 _ctRespawns = Config.RespawnPool;
-                Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0; mp_randomspawn 1; mp_randomspawn_los 1; mp_maxmoney 60000; mp_startmoney 60000; mp_afterroundmoney 60000");
+                Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0; mp_randomspawn 1; mp_randomspawn_los 1; mp_buytime 9999");
                 RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath, HookMode.Post); _deathHandlerRegistered = true;
                 RegisterEventHandler<EventPlayerSpawn>(OnRespawnSpawn, HookMode.Post); _spawnHandlerRegistered = true;
                 break;
@@ -397,21 +399,14 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
         if (_activeEvent == EventType.DoubleDamage || _chaosDoubleDamage)
         {
-            // Apply extra damage — just reduce health, don't call CommitSuicide
             int extraDamage = @event.DmgHealth * (Config.DoubleDamageMultiplier - 1);
-            int newHealth = Math.Max(0, pawn.Health - extraDamage);
-            pawn.Health = newHealth;
-            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
-
-            // If extra damage would kill, set health to 1 so next tick/damage finishes them
-            // Setting to 0 alone doesn't trigger engine death
-            if (newHealth <= 0)
+            int newHealth = pawn.Health - extraDamage;
+            if (newHealth > 0)
             {
-                pawn.Health = 0;
-                pawn.LifeState = (byte)1; // LIFE_DYING
+                pawn.Health = newHealth;
                 Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
-                Utilities.SetStateChanged(pawn, "CBaseEntity", "m_lifeState");
             }
+            // If newHealth <= 0, don't touch health — let the engine handle death naturally
         }
 
         return HookResult.Continue;
@@ -593,9 +588,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetNospread(false);
         SetBhop(false);
         ResetAllPlayersVisibility();
-        Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0; mp_maxmoney 16000; mp_startmoney 800; mp_afterroundmoney 0");
+        Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0; mp_buytime 20");
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30");
+        Server.ExecuteCommand("sv_infinite_ammo 0");
+        Server.ExecuteCommand("mp_death_drop_gun 0");
         ResetMaxHealth();
         _activeEvent = EventType.None;
     }
@@ -611,9 +608,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         foreach (var player in Utilities.GetPlayers())
             if (IsPlayerValid(player)) player.RemoveWeapons();
 
+        // Give armor to all players after strip
+        GiveAllPlayersFullArmor();
+
         if (Config.EnableBomb)
         {
-            // Give bomb back to a random alive T
             var ts = new List<CCSPlayerController>();
             foreach (var player in Utilities.GetPlayers())
             {
