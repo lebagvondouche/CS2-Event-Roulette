@@ -7,7 +7,7 @@ A Counter-Strike 2 plugin that triggers random events each round. Built with Cou
 17 events + Chaos Round, each announced with a description in chat:
 
 - **Low Gravity** — Scout + Zeus, perfect accuracy, low gravity, fast zeus recharge.
-- **Juan Deag** — Knife + Deagle, headshots only. Body shots deal no damage.
+- **Juan Deag** — Knife + Deagle, headshots only. Body shots deal no damage. Infinite ammo.
 - **Random Weapon** — Everyone gets a random weapon.
 - **Double Damage** — Glock only, all damage multiplied (configurable).
 - **Team Swap** — A random pair of human players swaps teams every 30s (configurable).
@@ -18,9 +18,9 @@ A Counter-Strike 2 plugin that triggers random events each round. Built with Cou
 - **Gravity Switch** — Gravity flips between low and high at a configurable interval. Buying enabled.
 - **Speed Randomizer** — Each player gets a random speed multiplier, shown in chat. Buying enabled.
 - **Last Man Standing** — Knife + random pistol only.
-- **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE + molotov. Knife does no damage.
-- **Tank Round** — High HP (configurable), full armor + helmet, random shotgun.
-- **Invisible Round** — All players are invisible. Listen for footsteps.
+- **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE + molotov. Knife does no damage. No friendly fire.
+- **Tank Round** — High HP (configurable), full armor + helmet, random shotgun, unlimited ammo.
+- **Invisible Round** — All players are invisible, knife only, no friendly fire. Listen for footsteps.
 - **Respawn Round** — Each team has a shared pool of respawns. Random weapon on spawn. Random spawn locations.
 - **Chaos Round** — Random mix of gravity, speed, damage, accuracy, and weapon. Every chaos round is different.
 
@@ -161,5 +161,5 @@ CC BY-NC 4.0 — free to fork and modify, no commercial use. See [LICENSE](../LI
 ---
 
 **Author:** Martin Persson
-**Version:** 0.5
+**Version:** 0.5.1
 **License:** CC BY-NC 4.0
