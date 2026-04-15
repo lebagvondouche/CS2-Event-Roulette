@@ -4,7 +4,7 @@ A Counter-Strike 2 plugin that triggers random events each round. Built with Cou
 
 ## Features
 
-17 events + Chaos Round, each announced with a description in chat:
+26 events + Chaos Round, each announced with a description in chat:
 
 - **Low Gravity** — Scout + Zeus, perfect accuracy, low gravity, fast zeus recharge.
 - **Juan Deag** — Knife + Deagle, headshots only. Body shots deal no damage. Infinite ammo.
@@ -16,18 +16,27 @@ A Counter-Strike 2 plugin that triggers random events each round. Built with Cou
 - **Zeus-Only** — Zeus taser only, fast recharge (configurable). Bhop enabled.
 - **No Reload** — One magazine, no reserve ammo. Buying enabled.
 - **Gravity Switch** — Gravity flips between low and high at a configurable interval. Buying enabled.
-- **Speed Randomizer** — Each player gets a random speed multiplier, shown in chat. Buying enabled.
+- **Speed Randomizer** — Each player gets a random speed multiplier, shown on screen. Buying enabled.
 - **Last Man Standing** — Knife + random pistol only.
 - **Power-Up Round** — High HP (configurable), full armor + helmet, unlimited HE + molotov. Knife does no damage. No friendly fire.
 - **Tank Round** — High HP (configurable), full armor + helmet, random shotgun, unlimited ammo.
 - **Invisible Round** — All players are invisible, knife only, no friendly fire. Listen for footsteps.
 - **Respawn Round** — Each team has a shared pool of respawns. Random weapon on spawn. Random spawn locations.
+- **Vampire Round** — Damage dealt heals the attacker. Pistols only. Configurable max HP.
+- **Jammer Round** — HUD disabled for all players. No crosshair, no health, no ammo display.
+- **Zoom Round** — Everyone gets a random FOV (tunnel vision). Configurable min/max.
+- **Fog of War Round** — Thick fog reduces visibility. Shotguns only. Configurable density and distance.
+- **Glow Round** — All players glow through walls with team-colored outlines.
+- **Size Randomizer Round** — Random player model scaling. HP scales proportionally with size.
+- **Chicken Leader Round** — A flock of chickens follows each player. Configurable count and size.
+- **Return to Sender Round** — Hit someone and they teleport back to spawn. Pistols only.
+- **Weird Grenades Round** — All grenades have random detonation times. Configurable min/max.
 - **Chaos Round** — Random mix of gravity, speed, damage, accuracy, and weapon. Every chaos round is different.
 
 All events:
 - Block purchases where appropriate (some events allow buying)
 - Strip weapons where needed (no carryover between rounds)
-- Clean up fully on round end (gravity, speed, nospread, timers, handlers)
+- Clean up fully on round end (gravity, speed, nospread, timers, handlers, entities)
 - Skip during warmup (unless admin forces an event)
 - Announce with a title and description in chat
 - Optionally give bomb back to a random T (`EnableBomb` config)
@@ -86,6 +95,15 @@ Edit `addons/counterstrikesharp/configs/plugins/RandomRoundEvents/RandomRoundEve
   "EnableTankRound": true,
   "EnableInvisibleRound": true,
   "EnableRespawnRound": true,
+  "EnableVampireRound": true,
+  "EnableJammerRound": true,
+  "EnableZoomRound": true,
+  "EnableFogRound": true,
+  "EnableGlowRound": true,
+  "EnableSizeRound": true,
+  "EnableChickenRound": true,
+  "EnableReturnToSenderRound": true,
+  "EnableWeirdGrenadesRound": true,
 
   "LowGravityValue": 400,
   "GravitySwitchLow": 400,
@@ -102,6 +120,17 @@ Edit `addons/counterstrikesharp/configs/plugins/RandomRoundEvents/RandomRoundEve
   "EnableBomb": false,
   "TankHP": 500,
   "RespawnPool": 10,
+  "VampireMaxHP": 300,
+  "ZoomMinFOV": 30,
+  "ZoomMaxFOV": 70,
+  "FogDensity": 0.99,
+  "FogEndDistance": 600,
+  "SizeMin": 0.5,
+  "SizeMax": 2.0,
+  "ChickenCount": 5,
+  "ChickenSize": 2.0,
+  "WeirdGrenadeMinTime": 0.1,
+  "WeirdGrenadeMaxTime": 5.0,
   "ChaosRoundChance": 15
 }
 ```
@@ -129,6 +158,17 @@ Set any `Enable*` option to `false` to remove that event from the random pool.
 | EnableBomb | false | true/false | Give C4 to a random T after weapon strip |
 | TankHP | 500 | 200–1000 | HP for Tank round |
 | RespawnPool | 10 | 1–50 | Shared respawns per team |
+| VampireMaxHP | 300 | 100–1000 | Max HP for Vampire round attacker healing |
+| ZoomMinFOV | 30 | — | Minimum FOV for Zoom round |
+| ZoomMaxFOV | 70 | — | Maximum FOV for Zoom round |
+| FogDensity | 0.99 | — | Fog density for Fog of War round |
+| FogEndDistance | 600 | — | Fog end distance (visibility range) |
+| SizeMin | 0.5 | — | Minimum player scale for Size round |
+| SizeMax | 2.0 | — | Maximum player scale for Size round |
+| ChickenCount | 5 | — | Number of chickens per player |
+| ChickenSize | 2.0 | — | Chicken model scale |
+| WeirdGrenadeMinTime | 0.1 | — | Minimum grenade detonation time (seconds) |
+| WeirdGrenadeMaxTime | 5.0 | — | Maximum grenade detonation time (seconds) |
 | ChaosRoundChance | 15 | 0–100 | Percentage chance of Chaos Round (0 to disable) |
 
 ## Commands
@@ -154,6 +194,15 @@ All commands require `@css/root` admin permission. Use in chat with `!` or `/` p
 | `!rre_tank` | Tank Round |
 | `!rre_invisible` | Invisible Round |
 | `!rre_respawn` | Respawn Round |
+| `!rre_vampire` | Vampire Round |
+| `!rre_jammer` | Jammer Round |
+| `!rre_zoom` | Zoom Round |
+| `!rre_fog` | Fog of War Round |
+| `!rre_glow` | Glow Round |
+| `!rre_size` | Size Randomizer Round |
+| `!rre_chicken` | Chicken Leader Round |
+| `!rre_return` | Return to Sender Round |
+| `!rre_weirdnades` | Weird Grenades Round |
 | `!rre_chaos` | Chaos Round |
 | `!rre_reset` | Reset all events |
 
@@ -177,5 +226,5 @@ CC BY-NC 4.0 — free to fork and modify, no commercial use. See [LICENSE](../LI
 ---
 
 **Author:** Martin Persson
-**Version:** 0.5.1
+**Version:** 0.6.0
 **License:** CC BY-NC 4.0
