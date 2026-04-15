@@ -6,6 +6,7 @@ using CounterStrikeSharp.API.Modules.Cvars;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Menu;
+using CounterStrikeSharp.API.Modules.Memory;
 using System.Drawing;
 using Microsoft.Extensions.Logging;
 
@@ -33,6 +34,15 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public bool EnableTankRound { get; set; } = true;
     public bool EnableInvisibleRound { get; set; } = true;
     public bool EnableRespawnRound { get; set; } = true;
+    public bool EnableVampireRound { get; set; } = true;
+    public bool EnableJammerRound { get; set; } = true;
+    public bool EnableZoomRound { get; set; } = true;
+    public bool EnableFogRound { get; set; } = true;
+    public bool EnableGlowRound { get; set; } = true;
+    public bool EnableSizeRound { get; set; } = true;
+    public bool EnableChickenRound { get; set; } = true;
+    public bool EnableReturnToSenderRound { get; set; } = true;
+    public bool EnableWeirdGrenadesRound { get; set; } = true;
 
     // Event settings
     public float LowGravityValue { get; set; } = 400.0f;
@@ -50,6 +60,17 @@ public class RandomRoundEventsConfig : IBasePluginConfig
     public bool EnableBomb { get; set; } = false;
     public int TankHP { get; set; } = 500;
     public int RespawnPool { get; set; } = 10;
+    public int VampireMaxHP { get; set; } = 300;
+    public uint ZoomMinFOV { get; set; } = 30;
+    public uint ZoomMaxFOV { get; set; } = 70;
+    public float FogDensity { get; set; } = 0.99f;
+    public float FogEndDistance { get; set; } = 600.0f;
+    public float SizeMin { get; set; } = 0.5f;
+    public float SizeMax { get; set; } = 2.0f;
+    public int ChickenCount { get; set; } = 5;
+    public float ChickenSize { get; set; } = 2.0f;
+    public float WeirdGrenadeMinTime { get; set; } = 0.1f;
+    public float WeirdGrenadeMaxTime { get; set; } = 5.0f;
 
     // Chaos round
     public int ChaosRoundChance { get; set; } = 15; // percentage chance (0-100)
@@ -74,6 +95,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private CounterStrikeSharp.API.Modules.Timers.Timer? _noReloadTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _ammoRefillTimer;
     private readonly Dictionary<int, float> _playerSpeeds = new();
+    private readonly List<CFogController> _fogEntities = new();
+    private readonly List<CDynamicProp> _glowEntities = new();
     private bool _isLoaded = false;
     private bool _roundEventTriggered = false;
     private float _currentGravity = 800.0f;
@@ -107,7 +130,16 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         TankRound,
         InvisibleRound,
         RespawnRound,
-        ChaosRound
+        ChaosRound,
+        VampireRound,
+        JammerRound,
+        ZoomRound,
+        FogRound,
+        GlowRound,
+        SizeRound,
+        ChickenRound,
+        ReturnToSenderRound,
+        WeirdGrenadesRound
     }
 
     private EventType _activeEvent = EventType.None;
@@ -117,6 +149,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private bool _itemPickupHandlerRegistered = false;
     private bool _deathHandlerRegistered = false;
     private bool _spawnHandlerRegistered = false;
+    private bool _entityListenerRegistered = false;
     private int _tRespawns = 0;
     private int _ctRespawns = 0;
 
@@ -139,6 +172,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Config.ZeusRechargeTime = Math.Clamp(Config.ZeusRechargeTime, 0, 30);
         Config.TankHP = Math.Clamp(Config.TankHP, 200, 1000);
         Config.RespawnPool = Math.Clamp(Config.RespawnPool, 1, 50);
+        Config.VampireMaxHP = Math.Clamp(Config.VampireMaxHP, 100, 1000);
         Config.ChaosRoundChance = Math.Clamp(Config.ChaosRoundChance, 0, 100);
 
         Logger.LogInformation("[RandomRoundEvents] Configuration loaded.");
@@ -173,6 +207,15 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_tank", "Trigger Tank Round event", OnTankRoundCommand);
         AddCommand("css_rre_invisible", "Trigger Invisible Round event", OnInvisibleRoundCommand);
         AddCommand("css_rre_respawn", "Trigger Respawn Round event", OnRespawnRoundCommand);
+        AddCommand("css_rre_vampire", "Trigger Vampire Round event", OnVampireRoundCommand);
+        AddCommand("css_rre_jammer", "Trigger Jammer Round event", OnJammerRoundCommand);
+        AddCommand("css_rre_zoom", "Trigger Zoom Round event", OnZoomRoundCommand);
+        AddCommand("css_rre_fog", "Trigger Fog of War Round event", OnFogRoundCommand);
+        AddCommand("css_rre_glow", "Trigger Glow Round event", OnGlowRoundCommand);
+        AddCommand("css_rre_size", "Trigger Size Randomizer Round event", OnSizeRoundCommand);
+        AddCommand("css_rre_chicken", "Trigger Chicken Leader Round event", OnChickenRoundCommand);
+        AddCommand("css_rre_return", "Trigger Return to Sender Round event", OnReturnToSenderCommand);
+        AddCommand("css_rre_weirdnades", "Trigger Weird Grenades Round event", OnWeirdGrenadesCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
         AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
         AddCommand("css_rre_chaos", "Trigger Chaos Round", OnChaosRoundCommand);
@@ -219,6 +262,15 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (Config.EnableTankRound) enabledEvents.Add(EventType.TankRound);
         if (Config.EnableInvisibleRound) enabledEvents.Add(EventType.InvisibleRound);
         if (Config.EnableRespawnRound) enabledEvents.Add(EventType.RespawnRound);
+        if (Config.EnableVampireRound) enabledEvents.Add(EventType.VampireRound);
+        if (Config.EnableJammerRound) enabledEvents.Add(EventType.JammerRound);
+        if (Config.EnableZoomRound) enabledEvents.Add(EventType.ZoomRound);
+        if (Config.EnableFogRound) enabledEvents.Add(EventType.FogRound);
+        if (Config.EnableGlowRound) enabledEvents.Add(EventType.GlowRound);
+        if (Config.EnableSizeRound) enabledEvents.Add(EventType.SizeRound);
+        if (Config.EnableChickenRound) enabledEvents.Add(EventType.ChickenRound);
+        if (Config.EnableReturnToSenderRound) enabledEvents.Add(EventType.ReturnToSenderRound);
+        if (Config.EnableWeirdGrenadesRound) enabledEvents.Add(EventType.WeirdGrenadesRound);
 
         if (enabledEvents.Count == 0)
         {
@@ -283,7 +335,16 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 AnnounceEvent("Flashbang Spam Round", "1 HP, flashbangs only. Knife does no damage!");
                 StartFlashbangSpamRound();
                 RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
-                StripAllWeapons(); GiveAllPlayersKnives(); SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs();
+                StripAllWeapons(); GiveAllPlayersKnives();
+                // Remove armor so knife heal-back works correctly at 1 HP
+                foreach (var player in Utilities.GetPlayers())
+                {
+                    if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+                    var pawn = player.PlayerPawn.Value;
+                    pawn.ArmorValue = 0;
+                    Utilities.SetStateChanged(pawn, "CCSPlayerPawn", "m_ArmorValue");
+                }
+                SetAllPlayersHealth(Config.FlashbangStartHP); GiveAllPlayersFlashbangs();
                 break;
             case EventType.KnifeOnly:
                 AnnounceEvent("Knife-Only Round", "Knives out! Bhop enabled!");
@@ -343,6 +404,45 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 Server.ExecuteCommand("mp_respawn_on_death_t 1; mp_respawn_on_death_ct 1; mp_respawnwavetime_ct 0; mp_respawnwavetime_t 0; mp_randomspawn 1; mp_randomspawn_los 1; mp_buytime 9999");
                 RegisterEventHandler<EventPlayerDeath>(OnPlayerDeath, HookMode.Post); _deathHandlerRegistered = true;
                 RegisterEventHandler<EventPlayerSpawn>(OnRespawnSpawn, HookMode.Post); _spawnHandlerRegistered = true;
+                break;
+            case EventType.VampireRound:
+                AnnounceEvent("Vampire Round", $"Damage dealt heals you! Max {Config.VampireMaxHP} HP. Pistols only!");
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
+                StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersPistols();
+                break;
+            case EventType.JammerRound:
+                AnnounceEvent("Jammer Round", "No HUD! No crosshair, no health, no ammo display!");
+                HideAllPlayersHUD();
+                break;
+            case EventType.ZoomRound:
+                AnnounceEvent("Zoom Round", "Tunnel vision! Everyone has a random FOV!");
+                RandomizeAllPlayersFOV();
+                break;
+            case EventType.FogRound:
+                AnnounceEvent("Fog of War Round", "Thick fog! Shotguns only, watch your corners!");
+                ApplyFog();
+                StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersShotgun();
+                break;
+            case EventType.GlowRound:
+                AnnounceEvent("Glow Round", "Everyone glows through walls! No hiding!");
+                ApplyGlowToAllPlayers();
+                break;
+            case EventType.SizeRound:
+                AnnounceEvent("Size Randomizer Round", "Everyone is a random size! HP scales with size!");
+                RandomizeAllPlayersSizes();
+                break;
+            case EventType.ChickenRound:
+                AnnounceEvent("Chicken Leader Round", "A flock of chickens follows each player!");
+                SpawnChickensForAllPlayers();
+                break;
+            case EventType.ReturnToSenderRound:
+                AnnounceEvent("Return to Sender Round", "Hit someone and they teleport back to spawn! Pistols only!");
+                RegisterEventHandler<EventPlayerHurt>(OnPlayerHurt, HookMode.Post); _hurtHandlerRegistered = true;
+                StripAllWeapons(); GiveAllPlayersKnives(); GiveAllPlayersPistols();
+                break;
+            case EventType.WeirdGrenadesRound:
+                AnnounceEvent("Weird Grenades Round", "All grenades have random detonation times!");
+                RegisterListener<Listeners.OnEntitySpawned>(OnWeirdGrenadeEntitySpawned); _entityListenerRegistered = true;
                 break;
             case EventType.ChaosRound:
                 ApplyChaosRound();
@@ -411,6 +511,23 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
             }
             // If newHealth <= 0, don't touch health — let the engine handle death naturally
+        }
+
+        if (_activeEvent == EventType.VampireRound && attacker.PlayerPawn.Value != null)
+        {
+            var attackerPawn = attacker.PlayerPawn.Value;
+            int healAmount = @event.DmgHealth;
+            attackerPawn.Health = Math.Min(attackerPawn.Health + healAmount, Config.VampireMaxHP);
+            attackerPawn.MaxHealth = attackerPawn.Health;
+            Utilities.SetStateChanged(attackerPawn, "CBaseEntity", "m_iHealth");
+            Utilities.SetStateChanged(attackerPawn, "CBaseEntity", "m_iMaxHealth");
+            if (!attacker.IsBot)
+                attacker.PrintToCenterAlert($"+{healAmount} HP");
+        }
+
+        if (_activeEvent == EventType.ReturnToSenderRound && pawn.Health > 0)
+        {
+            TeleportToSpawn(victim);
         }
 
         return HookResult.Continue;
@@ -578,6 +695,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 DeregisterEventHandler<EventPlayerSpawn>(OnRespawnSpawn, HookMode.Post);
                 _spawnHandlerRegistered = false;
             }
+            if (_entityListenerRegistered)
+            {
+                RemoveListener<Listeners.OnEntitySpawned>(OnWeirdGrenadeEntitySpawned);
+                _entityListenerRegistered = false;
+            }
         }
         catch (Exception ex)
         {
@@ -592,6 +714,11 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         SetNospread(false);
         SetBhop(false);
         ResetAllPlayersVisibility();
+        ResetAllPlayersHUD();
+        ResetAllPlayersFOV();
+        RemoveAllFog();
+        RemoveAllGlow();
+        ResetAllPlayersSizes();
         Server.ExecuteCommand("mp_respawn_on_death_t 0; mp_respawn_on_death_ct 0; mp_randomspawn 0; mp_buytime 20");
         EnableBuying();
         Server.ExecuteCommand("mp_taser_recharge_time 30; mp_friendlyfire 1");
@@ -842,7 +969,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             if (!player.IsBot)
             {
                 int percent = (int)(speed * 100);
-                player.PrintToChat($" {ChatColors.Blue}[EVENT]{ChatColors.White} Your speed: {ChatColors.Green}{percent}%");
+                player.PrintToCenterAlert($"Speed: {percent}%");
             }
         }
         // Engine resets VelocityModifier on weapon switch, landing, etc. — enforce it
@@ -1012,6 +1139,230 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         }
     }
 
+    private void HideAllPlayersHUD()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid || player.PlayerPawn.Value == null) continue;
+            player.PlayerPawn.Value.HideHUD = (uint)(player.PlayerPawn.Value.HideHUD | (1 << 8));
+            Utilities.SetStateChanged(player.PlayerPawn.Value, "CBasePlayerPawn", "m_iHideHUD");
+        }
+    }
+
+    private void ResetAllPlayersHUD()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid || player.PlayerPawn.Value == null) continue;
+            player.PlayerPawn.Value.HideHUD = (uint)(player.PlayerPawn.Value.HideHUD & ~(1 << 8));
+            Utilities.SetStateChanged(player.PlayerPawn.Value, "CBasePlayerPawn", "m_iHideHUD");
+        }
+    }
+
+    private void RandomizeAllPlayersFOV()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid || player.PlayerPawn.Value == null) continue;
+            uint fov = (uint)_random.Next((int)Config.ZoomMinFOV, (int)Config.ZoomMaxFOV + 1);
+            player.DesiredFOV = fov;
+            Utilities.SetStateChanged(player, "CBasePlayerController", "m_iDesiredFOV");
+            if (!player.IsBot)
+                player.PrintToCenterAlert($"FOV: {fov}");
+        }
+    }
+
+    private void ResetAllPlayersFOV()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid) continue;
+            player.DesiredFOV = 0; // 0 = default
+            Utilities.SetStateChanged(player, "CBasePlayerController", "m_iDesiredFOV");
+        }
+    }
+
+    private void ApplyFog()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid || player.PlayerPawn.Value == null) continue;
+            var fog = Utilities.CreateEntityByName<CFogController>("env_fog_controller");
+            if (fog == null) continue;
+            fog.Entity!.Name = $"rre_fog_{player.Slot}";
+            fog.Fog.Enable = true;
+            fog.Fog.ColorPrimary = Color.DarkGray;
+            fog.Fog.Exponent = 1.0f;
+            fog.Fog.Maxdensity = Config.FogDensity;
+            fog.Fog.End = Config.FogEndDistance;
+            fog.DispatchSpawn();
+            player.PlayerPawn.Value.AcceptInput("SetFogController", fog, fog, "!activator");
+            _fogEntities.Add(fog);
+        }
+    }
+
+    private void RemoveAllFog()
+    {
+        foreach (var fog in _fogEntities)
+        {
+            if (fog.IsValid) fog.Remove();
+        }
+        _fogEntities.Clear();
+    }
+
+    private void ApplyGlowToAllPlayers()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            var pawn = player.PlayerPawn.Value;
+            var modelName = pawn.CBodyComponent?.SceneNode?.GetSkeletonInstance()?.ModelState.ModelName;
+            if (modelName == null) continue;
+
+            Color glowColor = player.Team == CsTeam.Terrorist ? Color.Red : Color.Blue;
+
+            // Create proxy prop (invisible, follows player)
+            var proxy = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
+            if (proxy == null) continue;
+            proxy.Spawnflags = 256u;
+            proxy.RenderMode = RenderMode_t.kRenderNone;
+            proxy.SetModel(modelName);
+            proxy.AcceptInput("FollowEntity", pawn, proxy, "!activator");
+            proxy.DispatchSpawn();
+
+            // Create glow prop (visible glow, follows proxy)
+            var glow = Utilities.CreateEntityByName<CDynamicProp>("prop_dynamic");
+            if (glow == null) { proxy.Remove(); continue; }
+            glow.SetModel(modelName);
+            glow.AcceptInput("FollowEntity", proxy, glow, "!activator");
+            glow.DispatchSpawn();
+            glow.Render = Color.FromArgb(255, 255, 255, 255);
+            glow.Glow.GlowColorOverride = glowColor;
+            glow.Spawnflags = 256u;
+            glow.RenderMode = RenderMode_t.kRenderNormal;
+            glow.Glow.GlowRange = 5000;
+            glow.Glow.GlowTeam = -1;
+            glow.Glow.GlowType = 3;
+            glow.Glow.GlowRangeMin = 20;
+
+            _glowEntities.Add(proxy);
+            _glowEntities.Add(glow);
+        }
+    }
+
+    private void RemoveAllGlow()
+    {
+        foreach (var entity in _glowEntities)
+        {
+            if (entity.IsValid) entity.Remove();
+        }
+        _glowEntities.Clear();
+    }
+
+    private void RandomizeAllPlayersSizes()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            var pawn = player.PlayerPawn.Value;
+            var skeleton = pawn.CBodyComponent?.SceneNode?.GetSkeletonInstance();
+            if (skeleton == null) continue;
+
+            float size = (float)(Config.SizeMin + (_random.NextDouble() * (Config.SizeMax - Config.SizeMin)));
+            size = (float)Math.Round(size, 2);
+
+            skeleton.Scale = size;
+            pawn.AcceptInput("SetScale", null, null, size.ToString());
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_CBodyComponent");
+
+            // Scale HP proportionally
+            int hp = (int)(100 * size);
+            pawn.Health = hp;
+            pawn.MaxHealth = hp;
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iMaxHealth");
+
+            if (!player.IsBot)
+                player.PrintToCenterAlert($"Size: {(int)(size * 100)}% | HP: {hp}");
+        }
+    }
+
+    private void ResetAllPlayersSizes()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid || player.PlayerPawn.Value == null) continue;
+            var pawn = player.PlayerPawn.Value;
+            var skeleton = pawn.CBodyComponent?.SceneNode?.GetSkeletonInstance();
+            if (skeleton == null) continue;
+            skeleton.Scale = 1.0f;
+            pawn.AcceptInput("SetScale", null, null, "1");
+            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_CBodyComponent");
+        }
+    }
+
+    private void SpawnChickensForAllPlayers()
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!IsPlayerValid(player) || player.PlayerPawn.Value == null) continue;
+            var pawn = player.PlayerPawn.Value;
+            if (pawn.AbsOrigin == null) continue;
+
+            for (int i = 0; i < Config.ChickenCount; i++)
+            {
+                var chicken = Utilities.CreateEntityByName<CChicken>("chicken");
+                if (chicken == null) continue;
+
+                var offset = new Vector(
+                    (float)(100 * Math.Cos(2 * Math.PI * i / Config.ChickenCount)),
+                    (float)(100 * Math.Sin(2 * Math.PI * i / Config.ChickenCount)),
+                    0
+                );
+
+                chicken.DispatchSpawn();
+                chicken.Teleport(pawn.AbsOrigin + offset, pawn.AbsRotation, pawn.AbsVelocity);
+                chicken.CBodyComponent!.SceneNode!.Scale = Config.ChickenSize;
+                Schema.SetSchemaValue(chicken.Handle, "CChicken", "m_leader", player.PlayerPawn.Raw);
+            }
+        }
+    }
+
+    private void TeleportToSpawn(CCSPlayerController victim)
+    {
+        if (victim.PlayerPawn.Value == null) return;
+        string spawnName = victim.Team == CsTeam.CounterTerrorist
+            ? "info_player_counterterrorist"
+            : "info_player_terrorist";
+        var spawns = Utilities.FindAllEntitiesByDesignerName<CBaseEntity>(spawnName).ToList();
+        if (spawns.Count == 0)
+            spawns = Utilities.FindAllEntitiesByDesignerName<CBaseEntity>("info_player_start").ToList();
+        if (spawns.Count == 0) return;
+        var spawn = spawns[_random.Next(spawns.Count)];
+        if (spawn.AbsOrigin != null)
+            victim.PlayerPawn.Value.Teleport(spawn.AbsOrigin);
+    }
+
+    private void OnWeirdGrenadeEntitySpawned(CEntityInstance entity)
+    {
+        if (_activeEvent != EventType.WeirdGrenadesRound) return;
+        var name = entity.DesignerName;
+        if (name != "flashbang_projectile" && name != "smokegrenade_projectile" &&
+            name != "hegrenade_projectile" && name != "decoy_projectile")
+            return;
+
+        var grenade = entity.As<CBaseCSGrenadeProjectile>();
+        Server.NextFrame(() =>
+        {
+            if (!grenade.IsValid) return;
+            float min = Config.WeirdGrenadeMinTime;
+            float max = Config.WeirdGrenadeMaxTime;
+            float offset = (float)(_random.NextDouble() * (max - min) + min);
+            grenade.DetonateTime = Server.CurrentTime + offset;
+            Utilities.SetStateChanged(grenade, "CBaseGrenade", "m_flDetonateTime");
+        });
+    }
+
     private static void SetNospread(bool enabled)
     {
         var nospread = ConVar.Find("weapon_accuracy_nospread");
@@ -1072,6 +1423,15 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnTankRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.TankRound);
     private void OnInvisibleRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.InvisibleRound);
     private void OnRespawnRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.RespawnRound);
+    private void OnVampireRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.VampireRound);
+    private void OnJammerRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.JammerRound);
+    private void OnZoomRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ZoomRound);
+    private void OnFogRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.FogRound);
+    private void OnGlowRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.GlowRound);
+    private void OnSizeRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.SizeRound);
+    private void OnChickenRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ChickenRound);
+    private void OnReturnToSenderCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ReturnToSenderRound);
+    private void OnWeirdGrenadesCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.WeirdGrenadesRound);
     private void OnChaosRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ChaosRound);
 
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
@@ -1095,6 +1455,15 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         menu.AddMenuOption("Tank Round", (p, _) => { OnTankRoundCommand(p, command); });
         menu.AddMenuOption("Invisible Round", (p, _) => { OnInvisibleRoundCommand(p, command); });
         menu.AddMenuOption("Respawn Round", (p, _) => { OnRespawnRoundCommand(p, command); });
+        menu.AddMenuOption("Vampire Round", (p, _) => { OnVampireRoundCommand(p, command); });
+        menu.AddMenuOption("Jammer Round", (p, _) => { OnJammerRoundCommand(p, command); });
+        menu.AddMenuOption("Zoom Round", (p, _) => { OnZoomRoundCommand(p, command); });
+        menu.AddMenuOption("Fog of War", (p, _) => { OnFogRoundCommand(p, command); });
+        menu.AddMenuOption("Glow Round", (p, _) => { OnGlowRoundCommand(p, command); });
+        menu.AddMenuOption("Size Randomizer", (p, _) => { OnSizeRoundCommand(p, command); });
+        menu.AddMenuOption("Chicken Leader", (p, _) => { OnChickenRoundCommand(p, command); });
+        menu.AddMenuOption("Return to Sender", (p, _) => { OnReturnToSenderCommand(p, command); });
+        menu.AddMenuOption("Weird Grenades", (p, _) => { OnWeirdGrenadesCommand(p, command); });
         menu.AddMenuOption("Chaos Round", (p, _) => { OnChaosRoundCommand(p, command); });
         menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });
 
