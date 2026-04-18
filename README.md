@@ -1,3 +1,5 @@
+![RandomRoundEvents logo](logo/logo.png)
+
 # RandomRoundEvents
 
 `RandomRoundEvents` is a Counter-Strike 2 plugin for CounterStrikeSharp that rotates one custom round modifier at a time. It includes classic rounds like Low Gravity and Tank, visibility rounds like Inception and X-Ray Goggles, grenade variants like Grenade Roulette, and a curated Mayhem recipe round.
