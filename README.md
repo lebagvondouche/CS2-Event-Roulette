@@ -1,8 +1,8 @@
-![RandomRoundEvents logo](logo/logo.png)
+![CS2 Event Roulette logo](logo/logo.png)
 
-# RandomRoundEvents
+# CS2 Event Roulette
 
-`RandomRoundEvents` is a Counter-Strike 2 plugin for CounterStrikeSharp that rotates one custom round modifier at a time. It includes classic rounds like Low Gravity and Tank, visibility rounds like Inception and X-Ray Goggles, grenade variants like Grenade Roulette, and a curated Mayhem recipe round.
+`CS2 Event Roulette` is a Counter-Strike 2 plugin for CounterStrikeSharp that rotates one custom round modifier at a time. It includes classic rounds like Low Gravity and Tank, visibility rounds like Inception and X-Ray Goggles, grenade variants like Grenade Roulette, and a curated Mayhem recipe round.
 
 ## Highlights
 
@@ -21,6 +21,8 @@
 5. Restart the server or reload the plugin.
 
 ## Repo Layout
+
+Public branding uses `CS2 Event Roulette`, while the current code/plugin file names still use `RandomRoundEvents`.
 
 - [RandomRoundEvents.cs](RandomRoundEvents.cs) - main plugin orchestrator
 - [events](events) - grouped event modules and special-case rounds

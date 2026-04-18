@@ -1,6 +1,6 @@
-# RandomRoundEvents Docs
+# CS2 Event Roulette Docs
 
-RandomRoundEvents is a Counter-Strike 2 plugin for CounterStrikeSharp that applies one special round event at a time.
+CS2 Event Roulette is a Counter-Strike 2 plugin for CounterStrikeSharp that applies one special round event at a time.
 
 ## Overview
 
@@ -38,6 +38,8 @@ Special round:
 - Mayhem Round
 
 ## Project Layout
+
+Public branding uses `CS2 Event Roulette`, while the current code/plugin file names still use `RandomRoundEvents`.
 
 ```text
 RandomEvents/
@@ -230,7 +232,7 @@ The GitHub Actions workflow in [.github/workflows/release.yml](../.github/workfl
 
 - Warmup is skipped unless an admin forces a round.
 - Buying is enabled only for the rounds that are designed around it.
-- Mayhem is intentionally kept out of automatic random rotation until its live stability is re-verified.
+- Mayhem automatic rotation is enabled again through `MayhemRoundChance`.
 - Clown Grenades is currently WIP and kept out of automatic random rotation. Use `!rre_clowngrenades` for manual testing only.
 
 ## License
