@@ -1,4 +1,4 @@
-# RandomRoundEvents - Backlog
+# CS2 Event Roulette - Backlog
 
 Ideas sourced from [Kandru/cs2-roll-the-dice](https://github.com/Kandru/cs2-roll-the-dice). Only new events and improvements that do not duplicate existing functionality are listed.
 
