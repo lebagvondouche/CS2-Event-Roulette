@@ -4,7 +4,7 @@ CS2 Event Roulette is a Counter-Strike 2 plugin for CounterStrikeSharp that appl
 
 ## Overview
 
-The plugin currently includes 24 standard rounds plus Mayhem.
+The plugin currently includes 25 standard rounds plus Mayhem.
 
 Standard rounds:
 
@@ -31,6 +31,7 @@ Standard rounds:
 - Chicken Leader Round
 - Return to Sender Round
 - Grenade Roulette Round
+- Rainbow Smokes Round
 - Clown Grenades Round
 
 Special round:
@@ -53,6 +54,7 @@ RandomEvents/
 |   |-- respawn.cs
 |   |-- mayhem.cs
 |   |-- grenaderoulette.cs
+|   |-- rainbowsmokes.cs
 |   `-- clowngrenades.cs
 |-- helpers/
 |   |-- diagnostics.cs
@@ -118,6 +120,7 @@ csgo/
   "EnableChickenRound": true,
   "EnableReturnToSenderRound": true,
   "EnableGrenadeRouletteRound": true,
+  "EnableRainbowSmokesRound": true,
   "EnableClownGrenadesRound": false,
   "LowGravityValue": 300,
   "GravitySwitchLow": 200,
@@ -166,6 +169,7 @@ csgo/
 | `EnableZoomRound` | Enables Inception Round |
 | `EnableGlowRound` | Enables X-Ray Goggles Round |
 | `EnableGrenadeRouletteRound` | Enables Grenade Roulette Round |
+| `EnableRainbowSmokesRound` | Enables Rainbow Smokes Round |
 | `EnableClownGrenadesRound` | Reserved for the Clown Grenades WIP round; automatic rotation is currently disabled |
 | `LowGravityValue` | Gravity used in Low Gravity |
 | `GravitySwitchLow` / `GravitySwitchHigh` | Gravity values used in Gravity Switch |
@@ -212,6 +216,7 @@ All commands require `@css/root` and queue the event for the next round.
 | `!rre_chicken` | Chicken Leader Round |
 | `!rre_returntosender` | Return to Sender Round |
 | `!rre_grenaderoulette` | Grenade Roulette Round |
+| `!rre_rainbowsmokes` | Rainbow Smokes Round |
 | `!rre_clowngrenades` | Clown Grenades Round |
 | `!rre_mayhem` | Mayhem Round |
 | `!rre_reset` | Reset all active event state |

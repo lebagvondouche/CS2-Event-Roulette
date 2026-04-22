@@ -109,6 +109,21 @@ internal sealed class Weapons
         }
     }
 
+    internal void GiveAllPlayersSmokes()
+    {
+        foreach (var player in RandomRoundEvents.GetPlayers())
+        {
+            if (!Players.IsValid(player))
+                continue;
+
+            if (Players.GetGrenadeCount(player, "weapon_smokegrenade") >= 1)
+                continue;
+
+            try { player.GiveNamedItem("weapon_smokegrenade"); }
+            catch { }
+        }
+    }
+
     internal void GivePlayerFlashbang(CCSPlayerController player)
     {
         if (!Players.IsValid(player))

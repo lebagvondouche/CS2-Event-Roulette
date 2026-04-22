@@ -2,11 +2,11 @@
 
 # CS2 Event Roulette
 
-`CS2 Event Roulette` is a Counter-Strike 2 plugin for CounterStrikeSharp that rotates one custom round modifier at a time. It includes classic rounds like Low Gravity and Tank, visibility rounds like Inception and X-Ray Goggles, grenade variants like Grenade Roulette, and a curated Mayhem recipe round.
+`CS2 Event Roulette` is a Counter-Strike 2 plugin for CounterStrikeSharp that rotates one custom round modifier at a time. It includes classic rounds like Low Gravity and Tank, visibility rounds like Inception and X-Ray Goggles, grenade variants like Grenade Roulette and Rainbow Smokes, and a curated Mayhem recipe round.
 
 ## Highlights
 
-- 24 standard rounds plus Mayhem
+- 25 standard rounds plus Mayhem
 - Admin commands and menu support
 - Configurable tuning for gravity, speed, health, FOV, size, chickens, grenades, and bomb behavior
 - Refactored event architecture with grouped event modules under `events/`
@@ -58,6 +58,7 @@ Standard rounds:
 - Chicken Leader Round
 - Return to Sender Round
 - Grenade Roulette Round
+- Rainbow Smokes Round
 - Clown Grenades Round
 
 Special round:

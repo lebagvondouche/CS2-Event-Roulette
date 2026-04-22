@@ -42,6 +42,7 @@ public class RandomRoundEventsConfig : BasePluginConfig
     public bool EnableChickenRound { get; set; } = true;
     public bool EnableReturnToSenderRound { get; set; } = true;
     public bool EnableGrenadeRouletteRound { get; set; } = true;
+    public bool EnableRainbowSmokesRound { get; set; } = true;
     public bool EnableClownGrenadesRound { get; set; } = false;
 
     // Legacy alias kept for backwards compatibility with older configs.
@@ -113,6 +114,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private readonly VisibilityInfo _visibilityInfo;
     private readonly ClownGrenades _clownGrenades;
     private readonly GrenadeRoulette _grenadeRoulette;
+    private readonly RainbowSmokes _rainbowSmokes;
     private readonly Respawn _respawn;
     private readonly Mayhem _mayhem;
     private readonly Weapons _weapons;
@@ -127,6 +129,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _visibilityInfo = new VisibilityInfo(this);
         _clownGrenades = new ClownGrenades(this);
         _grenadeRoulette = new GrenadeRoulette(this);
+        _rainbowSmokes = new RainbowSmokes(this);
         _respawn = new Respawn(this);
         _mayhem = new Mayhem(this, _grenadeRoulette);
         _weapons = new Weapons(this);
@@ -138,6 +141,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     internal bool IsClownGrenadesRoundActive => _activeEvent == EventType.ClownGrenadesRound;
     internal bool IsMayhemRoundActive => _activeEvent == EventType.MayhemRound;
     internal bool IsGrenadeRouletteRoundActive => _activeEvent == EventType.GrenadeRouletteRound;
+    internal bool IsRainbowSmokesRoundActive => _activeEvent == EventType.RainbowSmokesRound;
     internal Random Random => _random;
     internal IReadOnlyList<string> RandomWeaponNames => RandomWeapons;
     internal IReadOnlyList<string> PistolNames => Pistols;
@@ -155,6 +159,10 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     internal void LogMayhemWarning(string message, params object[] args) =>
         Logger.LogWarning(message, args);
     internal void LogGrenadeRouletteWarning(string message, params object[] args) =>
+        Logger.LogWarning(message, args);
+    internal void LogRainbowSmokesInfo(string message, params object[] args) =>
+        Logger.LogInformation(message, args);
+    internal void LogRainbowSmokesWarning(string message, params object[] args) =>
         Logger.LogWarning(message, args);
     internal void LogPluginWarning(string message, params object[] args) =>
         Logger.LogWarning(message, args);
@@ -221,6 +229,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         ReturnToSenderRound,
         GrenadeRouletteRound,
         ClownGrenadesRound,
+        RainbowSmokesRound,
         
     }
 
@@ -313,6 +322,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_chicken", "Trigger Chicken Leader Round event", OnChickenRoundCommand);
         AddCommand("css_rre_returntosender", "Trigger Return to Sender Round event", OnReturnToSenderCommand);
         AddCommand("css_rre_grenaderoulette", "Trigger Grenade Roulette Round event", OnGrenadeRouletteCommand);
+        AddCommand("css_rre_rainbowsmokes", "Trigger Rainbow Smokes Round event", OnRainbowSmokesCommand);
         AddCommand("css_rre_clowngrenades", "Trigger Clown Grenades Round event", OnClownGrenadesCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
         AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
@@ -368,6 +378,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (Config.EnableChickenRound) enabledEvents.Add(EventType.ChickenRound);
         if (Config.EnableReturnToSenderRound) enabledEvents.Add(EventType.ReturnToSenderRound);
         if (Config.EnableGrenadeRouletteRound) enabledEvents.Add(EventType.GrenadeRouletteRound);
+        if (Config.EnableRainbowSmokesRound) enabledEvents.Add(EventType.RainbowSmokesRound);
         // Clown Grenades is currently WIP and should only be triggered manually.
 
         if (enabledEvents.Count == 0)
@@ -395,7 +406,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = selectedEvent;
 
         // Enable buying only for events that allow it
-        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.RespawnRound || selectedEvent == EventType.ZoomRound || selectedEvent == EventType.GlowRound || selectedEvent == EventType.SizeRound || selectedEvent == EventType.ChickenRound || selectedEvent == EventType.GrenadeRouletteRound || selectedEvent == EventType.ClownGrenadesRound)
+        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.RespawnRound || selectedEvent == EventType.ZoomRound || selectedEvent == EventType.GlowRound || selectedEvent == EventType.SizeRound || selectedEvent == EventType.ChickenRound || selectedEvent == EventType.GrenadeRouletteRound || selectedEvent == EventType.RainbowSmokesRound || selectedEvent == EventType.ClownGrenadesRound)
             EnableBuying();
         else
             DisableBuying();
@@ -434,6 +445,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.GrenadeRouletteRound:
                 _grenadeRoulette.Apply();
+                break;
+            case EventType.RainbowSmokesRound:
+                _rainbowSmokes.Apply();
                 break;
             case EventType.ClownGrenadesRound:
                 _clownGrenades.Apply();
@@ -724,6 +738,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _visibilityInfo.Reset();
         _clownGrenades.Reset();
         _grenadeRoulette.Reset();
+        _rainbowSmokes.Reset();
         _respawn.Reset();
         _mayhem.Reset();
 
@@ -1306,6 +1321,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     internal void GiveAllPlayersGrenadeRouletteGrenades() => _weapons.GiveAllPlayersGrenadeRouletteGrenades();
 
+    internal void GiveAllPlayersSmokes() => _weapons.GiveAllPlayersSmokes();
+
     private void RestoreManagedConVars() => _settings.RestoreManagedConVars();
 
     internal void SetConVar(string name, int value) => _settings.SetConVar(name, value);
@@ -1334,6 +1351,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             EventType.MayhemRound => "Mayhem Round",
             EventType.SizeRound => "Size Randomizer Round",
             EventType.GrenadeRouletteRound => "Grenade Roulette Round",
+            EventType.RainbowSmokesRound => "Rainbow Smokes Round",
             EventType.ClownGrenadesRound => "Clown Grenades Round",
             EventType.ReturnToSenderRound => "Return to Sender Round",
             EventType.PowerUpRound => "Power-Up Round",
@@ -1376,6 +1394,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnChickenRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ChickenRound);
     private void OnReturnToSenderCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ReturnToSenderRound);
     private void OnGrenadeRouletteCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.GrenadeRouletteRound);
+    private void OnRainbowSmokesCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.RainbowSmokesRound);
     private void OnClownGrenadesCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ClownGrenadesRound);
     private void OnMayhemRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.MayhemRound);
     private void OnDumpModelsCommand(CCSPlayerController? player, CommandInfo command)
@@ -1412,6 +1431,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         menu.AddMenuOption("Chicken Leader", (p, _) => { OnChickenRoundCommand(p, command); });
         menu.AddMenuOption("Return to Sender", (p, _) => { OnReturnToSenderCommand(p, command); });
         menu.AddMenuOption("Grenade Roulette", (p, _) => { OnGrenadeRouletteCommand(p, command); });
+        menu.AddMenuOption("Rainbow Smokes", (p, _) => { OnRainbowSmokesCommand(p, command); });
         menu.AddMenuOption("Clown Grenades", (p, _) => { OnClownGrenadesCommand(p, command); });
         menu.AddMenuOption("Mayhem Round", (p, _) => { OnMayhemRoundCommand(p, command); });
         menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });
@@ -1427,5 +1447,3 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} All events reset.");
     }
 }
-
-

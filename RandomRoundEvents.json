@@ -25,6 +25,7 @@
   "EnableChickenRound": true,
   "EnableReturnToSenderRound": true,
   "EnableGrenadeRouletteRound": true,
+  "EnableRainbowSmokesRound": true,
   "EnableClownGrenadesRound": false,
 
   "LowGravityValue": 300,
