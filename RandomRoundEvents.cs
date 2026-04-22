@@ -104,7 +104,7 @@ public class RandomRoundEventsConfig : BasePluginConfig
 public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConfig>
 {
     public override string ModuleName => "RandomRoundEvents";
-    public override string ModuleVersion => "0.6.1";
+    public override string ModuleVersion => "0.6.2";
     public override string ModuleAuthor => "Martin Persson";
     public override string ModuleDescription => "A plugin that triggers random events during rounds.";
 
@@ -406,7 +406,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = selectedEvent;
 
         // Enable buying only for events that allow it
-        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.RespawnRound || selectedEvent == EventType.ZoomRound || selectedEvent == EventType.GlowRound || selectedEvent == EventType.SizeRound || selectedEvent == EventType.ChickenRound || selectedEvent == EventType.GrenadeRouletteRound || selectedEvent == EventType.RainbowSmokesRound || selectedEvent == EventType.ClownGrenadesRound)
+        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.RespawnRound || selectedEvent == EventType.VampireRound || selectedEvent == EventType.ZoomRound || selectedEvent == EventType.GlowRound || selectedEvent == EventType.SizeRound || selectedEvent == EventType.ChickenRound || selectedEvent == EventType.GrenadeRouletteRound || selectedEvent == EventType.RainbowSmokesRound || selectedEvent == EventType.ClownGrenadesRound)
             EnableBuying();
         else
             DisableBuying();
