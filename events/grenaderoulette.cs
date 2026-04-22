@@ -11,9 +11,7 @@ internal sealed class GrenadeRoulette
         "flashbang_projectile",
         "smokegrenade_projectile",
         "hegrenade_projectile",
-        "decoy_projectile",
-        "molotov_projectile",
-        "incgrenade_projectile"
+        "decoy_projectile"
     }.AsReadOnly();
 
     private readonly RandomRoundEvents _plugin;
@@ -29,9 +27,8 @@ internal sealed class GrenadeRoulette
 
     public void Apply()
     {
-        _plugin.ShowEvent("Grenade Roulette Round", "Normal buy round, but HE, flash, smoke, decoy, molotov, and incendiary have random detonation times!");
+        _plugin.ShowEvent("Grenade Roulette Round", "Normal buy round. Any HE, flash, smoke, or decoy you buy gets a random detonation time!");
         _plugin.GiveAllPlayersStandardLoadout();
-        _plugin.GiveAllPlayersGrenadeRouletteGrenades();
         EnsureListenerRegistered();
     }
 
@@ -60,7 +57,7 @@ internal sealed class GrenadeRoulette
             return;
         }
 
-        var grenade = entity.As<CBaseCSGrenadeProjectile>();
+        var grenade = new CBaseCSGrenadeProjectile(entity.Handle);
         Server.NextFrame(() =>
         {
             if (!grenade.IsValid)
@@ -69,7 +66,8 @@ internal sealed class GrenadeRoulette
             float min = _plugin.Config.WeirdGrenadeMinTime;
             float max = _plugin.Config.WeirdGrenadeMaxTime;
             float offset = (float)(_plugin.Random.NextDouble() * (max - min) + min);
-            grenade.DetonateTime = Server.CurrentTime + offset;
+            float targetTime = Server.CurrentTime + offset;
+            grenade.DetonateTime = targetTime;
             Utilities.SetStateChanged(grenade, "CBaseGrenade", "m_flDetonateTime");
         });
     }

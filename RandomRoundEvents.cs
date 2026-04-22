@@ -43,6 +43,7 @@ public class RandomRoundEventsConfig : BasePluginConfig
     public bool EnableReturnToSenderRound { get; set; } = true;
     public bool EnableGrenadeRouletteRound { get; set; } = true;
     public bool EnableRainbowSmokesRound { get; set; } = true;
+    public bool EnableToxicSmokesRound { get; set; } = true;
     public bool EnableClownGrenadesRound { get; set; } = false;
 
     // Legacy alias kept for backwards compatibility with older configs.
@@ -74,6 +75,14 @@ public class RandomRoundEventsConfig : BasePluginConfig
     public float ChickenSize { get; set; } = 2.0f;
     public float WeirdGrenadeMinTime { get; set; } = 0.1f;
     public float WeirdGrenadeMaxTime { get; set; } = 5.0f;
+    public int ToxicSmokeDamagePerTick { get; set; } = 4;
+    public float ToxicSmokeTickInterval { get; set; } = 0.5f;
+    public float ToxicSmokeRadius { get; set; } = 180.0f;
+    public float ToxicSmokeDuration { get; set; } = 18.0f;
+    public float ToxicSmokeDebuffCueInterval { get; set; } = 1.0f;
+    public float ToxicSmokeShakeDuration { get; set; } = 0.35f;
+    public float ToxicSmokeShakeAmplitude { get; set; } = 2.5f;
+    public float ToxicSmokeShakeFrequency { get; set; } = 1.5f;
     public float ClownGrenadesModelScale { get; set; } = 0.35f;
 
     public static readonly List<string> DefaultMayhemRoundBlocklist = new()
@@ -115,6 +124,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private readonly ClownGrenades _clownGrenades;
     private readonly GrenadeRoulette _grenadeRoulette;
     private readonly RainbowSmokes _rainbowSmokes;
+    private readonly ToxicSmokes _toxicSmokes;
     private readonly Respawn _respawn;
     private readonly Mayhem _mayhem;
     private readonly Weapons _weapons;
@@ -130,6 +140,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _clownGrenades = new ClownGrenades(this);
         _grenadeRoulette = new GrenadeRoulette(this);
         _rainbowSmokes = new RainbowSmokes(this);
+        _toxicSmokes = new ToxicSmokes(this);
         _respawn = new Respawn(this);
         _mayhem = new Mayhem(this, _grenadeRoulette);
         _weapons = new Weapons(this);
@@ -142,6 +153,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     internal bool IsMayhemRoundActive => _activeEvent == EventType.MayhemRound;
     internal bool IsGrenadeRouletteRoundActive => _activeEvent == EventType.GrenadeRouletteRound;
     internal bool IsRainbowSmokesRoundActive => _activeEvent == EventType.RainbowSmokesRound;
+    internal bool IsToxicSmokesRoundActive => _activeEvent == EventType.ToxicSmokesRound;
     internal Random Random => _random;
     internal IReadOnlyList<string> RandomWeaponNames => RandomWeapons;
     internal IReadOnlyList<string> PistolNames => Pistols;
@@ -160,14 +172,22 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Logger.LogWarning(message, args);
     internal void LogGrenadeRouletteWarning(string message, params object[] args) =>
         Logger.LogWarning(message, args);
+    internal void LogGrenadeRouletteInfo(string message, params object[] args) =>
+        Logger.LogInformation(message, args);
     internal void LogRainbowSmokesInfo(string message, params object[] args) =>
         Logger.LogInformation(message, args);
     internal void LogRainbowSmokesWarning(string message, params object[] args) =>
+        Logger.LogWarning(message, args);
+    internal void LogToxicSmokesInfo(string message, params object[] args) =>
+        Logger.LogInformation(message, args);
+    internal void LogToxicSmokesWarning(string message, params object[] args) =>
         Logger.LogWarning(message, args);
     internal void LogPluginWarning(string message, params object[] args) =>
         Logger.LogWarning(message, args);
     internal void ShowEvent(string title, string description) =>
         AnnounceEvent(title, description);
+    internal void ShowMayhemEvent(string description) =>
+        AnnounceEvent("Mayhem Round", $"Buckle up! {description}", "#ff6b6b", "MAYHEM");
 
     private readonly Random _random = new();
     private CounterStrikeSharp.API.Modules.Timers.Timer? _gravitySwitchTimer;
@@ -230,6 +250,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         GrenadeRouletteRound,
         ClownGrenadesRound,
         RainbowSmokesRound,
+        ToxicSmokesRound,
         
     }
 
@@ -265,6 +286,14 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         Config.ChickenSize = Math.Clamp(Config.ChickenSize, 0.1f, 5.0f);
         Config.WeirdGrenadeMinTime = Math.Clamp(Config.WeirdGrenadeMinTime, 0.1f, 30.0f);
         Config.WeirdGrenadeMaxTime = Math.Clamp(Config.WeirdGrenadeMaxTime, Config.WeirdGrenadeMinTime, 30.0f);
+        Config.ToxicSmokeDamagePerTick = Math.Clamp(Config.ToxicSmokeDamagePerTick, 1, 50);
+        Config.ToxicSmokeTickInterval = Math.Clamp(Config.ToxicSmokeTickInterval, 0.1f, 5.0f);
+        Config.ToxicSmokeRadius = Math.Clamp(Config.ToxicSmokeRadius, 50.0f, 500.0f);
+        Config.ToxicSmokeDuration = Math.Clamp(Config.ToxicSmokeDuration, 1.0f, 30.0f);
+        Config.ToxicSmokeDebuffCueInterval = Math.Clamp(Config.ToxicSmokeDebuffCueInterval, 0.1f, 10.0f);
+        Config.ToxicSmokeShakeDuration = Math.Clamp(Config.ToxicSmokeShakeDuration, 0.0f, 5.0f);
+        Config.ToxicSmokeShakeAmplitude = Math.Clamp(Config.ToxicSmokeShakeAmplitude, 0.0f, 25.0f);
+        Config.ToxicSmokeShakeFrequency = Math.Clamp(Config.ToxicSmokeShakeFrequency, 0.0f, 50.0f);
         Config.ClownGrenadesModelScale = Math.Clamp(Config.ClownGrenadesModelScale, 0.1f, 3.0f);
         if (Config.ChaosRoundChance != int.MinValue && Config.MayhemRoundChance == 15)
             Config.MayhemRoundChance = Config.ChaosRoundChance;
@@ -323,6 +352,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         AddCommand("css_rre_returntosender", "Trigger Return to Sender Round event", OnReturnToSenderCommand);
         AddCommand("css_rre_grenaderoulette", "Trigger Grenade Roulette Round event", OnGrenadeRouletteCommand);
         AddCommand("css_rre_rainbowsmokes", "Trigger Rainbow Smokes Round event", OnRainbowSmokesCommand);
+        AddCommand("css_rre_toxicsmokes", "Trigger Toxic Green Smokes Round event", OnToxicSmokesCommand);
         AddCommand("css_rre_clowngrenades", "Trigger Clown Grenades Round event", OnClownGrenadesCommand);
         AddCommand("css_rre_reset", "Reset all events", OnResetCommand);
         AddCommand("css_rre_menu", "Open event selection menu", OnMenuCommand);
@@ -379,6 +409,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (Config.EnableReturnToSenderRound) enabledEvents.Add(EventType.ReturnToSenderRound);
         if (Config.EnableGrenadeRouletteRound) enabledEvents.Add(EventType.GrenadeRouletteRound);
         if (Config.EnableRainbowSmokesRound) enabledEvents.Add(EventType.RainbowSmokesRound);
+        if (Config.EnableToxicSmokesRound) enabledEvents.Add(EventType.ToxicSmokesRound);
         // Clown Grenades is currently WIP and should only be triggered manually.
 
         if (enabledEvents.Count == 0)
@@ -406,7 +437,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _activeEvent = selectedEvent;
 
         // Enable buying only for events that allow it
-        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.RespawnRound || selectedEvent == EventType.VampireRound || selectedEvent == EventType.ZoomRound || selectedEvent == EventType.GlowRound || selectedEvent == EventType.SizeRound || selectedEvent == EventType.ChickenRound || selectedEvent == EventType.GrenadeRouletteRound || selectedEvent == EventType.RainbowSmokesRound || selectedEvent == EventType.ClownGrenadesRound)
+        if (selectedEvent == EventType.SwapTeams || selectedEvent == EventType.SpeedRandomizer || selectedEvent == EventType.GravitySwitch || selectedEvent == EventType.RespawnRound || selectedEvent == EventType.VampireRound || selectedEvent == EventType.ZoomRound || selectedEvent == EventType.GlowRound || selectedEvent == EventType.SizeRound || selectedEvent == EventType.ChickenRound || selectedEvent == EventType.GrenadeRouletteRound || selectedEvent == EventType.RainbowSmokesRound || selectedEvent == EventType.ToxicSmokesRound || selectedEvent == EventType.ClownGrenadesRound)
             EnableBuying();
         else
             DisableBuying();
@@ -448,6 +479,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
                 break;
             case EventType.RainbowSmokesRound:
                 _rainbowSmokes.Apply();
+                break;
+            case EventType.ToxicSmokesRound:
+                _toxicSmokes.Apply();
                 break;
             case EventType.ClownGrenadesRound:
                 _clownGrenades.Apply();
@@ -515,9 +549,14 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         {
             int extraDamage = @event.DmgHealth * (Config.DoubleDamageMultiplier - 1);
             int newHealth = pawn.Health - extraDamage;
-            if (newHealth > 0)
+            if (newHealth >= 0)
             {
                 pawn.Health = newHealth;
+                Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
+            }
+            else
+            {
+                pawn.Health = 0;
                 Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
             }
             // If newHealth <= 0, don't touch health — let the engine handle death naturally
@@ -527,8 +566,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         {
             var attackerPawn = attacker.PlayerPawn.Value;
             int healAmount = @event.DmgHealth;
-            attackerPawn.Health = Math.Min(attackerPawn.Health + healAmount, Config.VampireMaxHP);
-            attackerPawn.MaxHealth = attackerPawn.Health;
+            int healCap = Math.Max(attackerPawn.MaxHealth, Config.VampireMaxHP);
+            attackerPawn.MaxHealth = healCap;
+            attackerPawn.Health = Math.Min(attackerPawn.Health + healAmount, healCap);
             Utilities.SetStateChanged(attackerPawn, "CBaseEntity", "m_iHealth");
             Utilities.SetStateChanged(attackerPawn, "CBaseEntity", "m_iMaxHealth");
             if (!attacker.IsBot)
@@ -739,6 +779,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         _clownGrenades.Reset();
         _grenadeRoulette.Reset();
         _rainbowSmokes.Reset();
+        _toxicSmokes.Reset();
         _respawn.Reset();
         _mayhem.Reset();
 
@@ -814,10 +855,25 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         });
     }
 
-    private static void AnnounceEvent(string title, string description)
+    private void AnnounceEvent(string title, string description, string accentColor = "#66b3ff", string badgeText = "EVENT")
     {
-        Server.PrintToChatAll($" {ChatColors.Blue}[EVENT]{ChatColors.White} {title}");
-        Server.PrintToChatAll($" {ChatColors.Grey}» {description}");
+        string message = $"[{badgeText}] {title}\n{description}";
+        SendCenterAnnouncement(message);
+        AddTimer(1.0f, () => SendCenterAnnouncement(message));
+        AddTimer(2.0f, () => SendCenterAnnouncement(message));
+        AddTimer(3.0f, () => SendCenterAnnouncement(message));
+        AddTimer(4.0f, () => SendCenterAnnouncement(message));
+    }
+
+    private static void SendCenterAnnouncement(string message)
+    {
+        foreach (var player in Utilities.GetPlayers())
+        {
+            if (!player.IsValid || player.IsBot)
+                continue;
+
+            player.PrintToCenterAlert(message);
+        }
     }
 
     private static void RestorePawnHealth(CCSPlayerPawn pawn, int amount, int maxHealth)
@@ -1317,6 +1373,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private void EnableBuying() => _settings.EnableBuying();
 
+    internal void EnableBuyingForCurrentRound() => _settings.EnableBuying();
+
     internal void SetBhop(bool enabled) => _settings.SetBhop(enabled);
 
     private void CaptureManagedConVars() => _settings.CaptureManagedConVars();
@@ -1354,6 +1412,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
             EventType.SizeRound => "Size Randomizer Round",
             EventType.GrenadeRouletteRound => "Grenade Roulette Round",
             EventType.RainbowSmokesRound => "Rainbow Smokes Round",
+            EventType.ToxicSmokesRound => "Toxic Green Smokes Round",
             EventType.ClownGrenadesRound => "Clown Grenades Round",
             EventType.ReturnToSenderRound => "Return to Sender Round",
             EventType.PowerUpRound => "Power-Up Round",
@@ -1397,6 +1456,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void OnReturnToSenderCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ReturnToSenderRound);
     private void OnGrenadeRouletteCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.GrenadeRouletteRound);
     private void OnRainbowSmokesCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.RainbowSmokesRound);
+    private void OnToxicSmokesCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ToxicSmokesRound);
     private void OnClownGrenadesCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.ClownGrenadesRound);
     private void OnMayhemRoundCommand(CCSPlayerController? player, CommandInfo command) => ForceEvent(player, EventType.MayhemRound);
     private void OnDumpModelsCommand(CCSPlayerController? player, CommandInfo command)
@@ -1404,6 +1464,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         if (!IsAdmin(player)) return;
         _diagnostics.DumpLoadedModels(player);
     }
+
 
     private void OnMenuCommand(CCSPlayerController? player, CommandInfo command)
     {
@@ -1434,6 +1495,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         menu.AddMenuOption("Return to Sender", (p, _) => { OnReturnToSenderCommand(p, command); });
         menu.AddMenuOption("Grenade Roulette", (p, _) => { OnGrenadeRouletteCommand(p, command); });
         menu.AddMenuOption("Rainbow Smokes", (p, _) => { OnRainbowSmokesCommand(p, command); });
+        menu.AddMenuOption("Toxic Green Smokes", (p, _) => { OnToxicSmokesCommand(p, command); });
         menu.AddMenuOption("Clown Grenades", (p, _) => { OnClownGrenadesCommand(p, command); });
         menu.AddMenuOption("Mayhem Round", (p, _) => { OnMayhemRoundCommand(p, command); });
         menu.AddMenuOption("Reset All", (p, _) => { OnResetCommand(p, command); });

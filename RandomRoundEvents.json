@@ -26,6 +26,7 @@
   "EnableReturnToSenderRound": true,
   "EnableGrenadeRouletteRound": true,
   "EnableRainbowSmokesRound": true,
+  "EnableToxicSmokesRound": true,
   "EnableClownGrenadesRound": false,
 
   "LowGravityValue": 300,
@@ -52,6 +53,14 @@
   "ChickenSize": 2.0,
   "WeirdGrenadeMinTime": 0.1,
   "WeirdGrenadeMaxTime": 15.0,
+  "ToxicSmokeDamagePerTick": 4,
+  "ToxicSmokeTickInterval": 0.5,
+  "ToxicSmokeRadius": 180.0,
+  "ToxicSmokeDuration": 18.0,
+  "ToxicSmokeDebuffCueInterval": 1.0,
+  "ToxicSmokeShakeDuration": 0.35,
+  "ToxicSmokeShakeAmplitude": 2.5,
+  "ToxicSmokeShakeFrequency": 1.5,
   "ClownGrenadesModelScale": 0.35,
   "MayhemRoundChance": 15,
   "MayhemRoundBlocklist": [

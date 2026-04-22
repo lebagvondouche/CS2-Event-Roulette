@@ -30,24 +30,24 @@ internal sealed class Mayhem
         _plugin.StripAllWeapons();
         _plugin.GiveAllPlayersKnives();
 
-        var loadouts = new List<(string Name, string Tag, Action Apply)>
+        var loadouts = new List<(string Name, string Tag, bool EnableBuying, Action Apply)>
         {
-            ("Random sidearms", "guns", () => _plugin.GiveAllPlayersPistols()),
-            ("Juan Deags", "guns", () => RandomRoundEvents.GiveAllPlayersDeagle()),
-            ("Scout + Zeus", "guns", () =>
+            ("Random sidearms", "guns", false, () => _plugin.GiveAllPlayersPistols()),
+            ("Juan Deags", "guns", false, () => RandomRoundEvents.GiveAllPlayersDeagle()),
+            ("Scout + Zeus", "guns", false, () =>
             {
                 _plugin.GiveAllPlayersScout();
                 _plugin.SetConVar("mp_weapons_allow_zeus", -1);
                 _plugin.SetConVar("mp_taser_recharge_time", _plugin.Config.ZeusRechargeTime);
                 _plugin.GiveAllPlayersZeus();
             }),
-            ("Shotguns", "guns", () => _plugin.GiveAllPlayersShotgun()),
-            ("Random weapons", "guns", () => _plugin.GiveAllPlayersRandomWeapons()),
-            ("Default pistols", "guns", () => RandomRoundEvents.GiveAllPlayersDefaultPistols()),
-            ("Grenade roulette", "grenades", () =>
+            ("Shotguns", "guns", false, () => _plugin.GiveAllPlayersShotgun()),
+            ("Random weapons", "guns", false, () => _plugin.GiveAllPlayersRandomWeapons()),
+            ("Default pistols", "guns", false, () => RandomRoundEvents.GiveAllPlayersDefaultPistols()),
+            ("Grenade roulette", "grenades", true, () =>
             {
+                _plugin.GiveAllPlayersStandardLoadout();
                 _grenadeRoulette.EnableMayhemModifier();
-                _plugin.GiveAllPlayersGrenadeRouletteGrenades();
             })
         };
 
@@ -66,11 +66,13 @@ internal sealed class Mayhem
         if (loadouts.Count == 0)
         {
             _plugin.LogMayhemWarning("[RandomRoundEvents] Mayhem blocklist removed every loadout option. Falling back to Default pistols.");
-            loadouts.Add(("Default pistols", "guns", () => RandomRoundEvents.GiveAllPlayersDefaultPistols()));
+            loadouts.Add(("Default pistols", "guns", false, () => RandomRoundEvents.GiveAllPlayersDefaultPistols()));
         }
 
         var loadout = loadouts[_plugin.Random.Next(loadouts.Count)];
         loadout.Apply();
+        if (loadout.EnableBuying)
+            _plugin.EnableBuyingForCurrentRound();
         recipe.Add(loadout.Name);
 
         var worldMods = new List<(string Name, Action Apply)>
@@ -191,8 +193,7 @@ internal sealed class Mayhem
 
         string desc = string.Join(", ", recipe);
         _plugin.LogMayhemInfo("[RandomRoundEvents] Mayhem recipe: {Recipe}", desc);
-        Server.PrintToChatAll($" {ChatColors.Red}[MAYHEM ROUND]{ChatColors.White} Buckle up!");
-        Server.PrintToChatAll($" {ChatColors.Grey}» {desc}");
+        _plugin.ShowMayhemEvent(desc);
     }
 
     public void Reset()

@@ -4,7 +4,7 @@ CS2 Event Roulette is a Counter-Strike 2 plugin for CounterStrikeSharp that appl
 
 ## Overview
 
-The plugin currently includes 25 standard rounds plus Mayhem.
+The plugin currently includes 26 standard rounds plus Mayhem.
 
 Standard rounds:
 
@@ -32,6 +32,7 @@ Standard rounds:
 - Return to Sender Round
 - Grenade Roulette Round
 - Rainbow Smokes Round
+- Toxic Green Smokes Round
 - Clown Grenades Round
 
 Special round:
@@ -55,6 +56,7 @@ RandomEvents/
 |   |-- mayhem.cs
 |   |-- grenaderoulette.cs
 |   |-- rainbowsmokes.cs
+|   |-- toxicsmokes.cs
 |   `-- clowngrenades.cs
 |-- helpers/
 |   |-- diagnostics.cs
@@ -121,6 +123,7 @@ csgo/
   "EnableReturnToSenderRound": true,
   "EnableGrenadeRouletteRound": true,
   "EnableRainbowSmokesRound": true,
+  "EnableToxicSmokesRound": true,
   "EnableClownGrenadesRound": false,
   "LowGravityValue": 300,
   "GravitySwitchLow": 200,
@@ -146,6 +149,14 @@ csgo/
   "ChickenSize": 2.0,
   "WeirdGrenadeMinTime": 0.1,
   "WeirdGrenadeMaxTime": 15.0,
+  "ToxicSmokeDamagePerTick": 4,
+  "ToxicSmokeTickInterval": 0.5,
+  "ToxicSmokeRadius": 180.0,
+  "ToxicSmokeDuration": 18.0,
+  "ToxicSmokeDebuffCueInterval": 1.0,
+  "ToxicSmokeShakeDuration": 0.35,
+  "ToxicSmokeShakeAmplitude": 2.5,
+  "ToxicSmokeShakeFrequency": 1.5,
   "MayhemRoundChance": 15,
   "MayhemRoundBlocklist": [
     "HeadshotOnly",
@@ -170,6 +181,7 @@ csgo/
 | `EnableGlowRound` | Enables X-Ray Goggles Round |
 | `EnableGrenadeRouletteRound` | Enables Grenade Roulette Round |
 | `EnableRainbowSmokesRound` | Enables Rainbow Smokes Round |
+| `EnableToxicSmokesRound` | Enables Toxic Green Smokes Round |
 | `EnableClownGrenadesRound` | Reserved for the Clown Grenades WIP round; automatic rotation is currently disabled |
 | `LowGravityValue` | Gravity used in Low Gravity |
 | `GravitySwitchLow` / `GravitySwitchHigh` | Gravity values used in Gravity Switch |
@@ -183,6 +195,10 @@ csgo/
 | `SizeMin` / `SizeMax` | Scale range for Size Randomizer |
 | `ChickenCount` / `ChickenSize` | Chicken Leader tuning |
 | `WeirdGrenadeMinTime` / `WeirdGrenadeMaxTime` | Random detonation timing range for Grenade Roulette |
+| `ToxicSmokeDamagePerTick` / `ToxicSmokeTickInterval` | Damage amount and tick cadence for Toxic Green Smokes |
+| `ToxicSmokeRadius` / `ToxicSmokeDuration` | Toxic Green Smokes cloud radius and active duration |
+| `ToxicSmokeDebuffCueInterval` | Minimum time between poison debuff cues for the same player |
+| `ToxicSmokeShakeDuration` / `ToxicSmokeShakeAmplitude` / `ToxicSmokeShakeFrequency` | Toxic debuff shake tuning |
 | `MayhemRoundChance` | Percentage chance that a round becomes Mayhem instead of a standard event |
 | `MayhemRoundBlocklist` | Rounds excluded from Mayhem recipe generation |
 
@@ -217,6 +233,7 @@ All commands require `@css/root` and queue the event for the next round.
 | `!rre_returntosender` | Return to Sender Round |
 | `!rre_grenaderoulette` | Grenade Roulette Round |
 | `!rre_rainbowsmokes` | Rainbow Smokes Round |
+| `!rre_toxicsmokes` | Toxic Green Smokes Round |
 | `!rre_clowngrenades` | Clown Grenades Round |
 | `!rre_mayhem` | Mayhem Round |
 | `!rre_reset` | Reset all active event state |
