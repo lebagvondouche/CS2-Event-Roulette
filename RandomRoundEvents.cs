@@ -104,7 +104,7 @@ public class RandomRoundEventsConfig : BasePluginConfig
 public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConfig>
 {
     public override string ModuleName => "RandomRoundEvents";
-    public override string ModuleVersion => "0.6.0";
+    public override string ModuleVersion => "0.6.1";
     public override string ModuleAuthor => "Martin Persson";
     public override string ModuleDescription => "A plugin that triggers random events during rounds.";
 
@@ -904,6 +904,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     internal void GiveAllPlayersShotgun() => _weapons.GiveAllPlayersShotgun();
 
     internal void GiveAllPlayersFullArmor() => _weapons.GiveAllPlayersFullArmor();
+
+    internal void GiveAllPlayersXM1014() => _weapons.GiveAllPlayersXM1014();
 
     internal void GiveAllPlayersUnlimitedHE() => _weapons.GiveAllPlayersUnlimitedHE();
 

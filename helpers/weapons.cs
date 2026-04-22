@@ -363,6 +363,17 @@ internal sealed class Weapons
         }
     }
 
+    internal void GiveAllPlayersXM1014()
+    {
+        foreach (var player in RandomRoundEvents.GetPlayers())
+        {
+            if (!Players.IsValid(player))
+                continue;
+
+            player.GiveNamedItem("weapon_xm1014");
+        }
+    }
+
     internal void GiveAllPlayersFullArmor()
     {
         foreach (var player in RandomRoundEvents.GetPlayers())

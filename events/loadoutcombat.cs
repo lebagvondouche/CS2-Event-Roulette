@@ -100,12 +100,12 @@ internal sealed class LoadoutCombat
                 RandomRoundEvents.GiveAllPlayersMolotov();
                 break;
             case RandomRoundEvents.EventType.TankRound:
-                _plugin.ShowEvent("Tank Round", $"{_plugin.Config.TankHP} HP, full armor, shotguns only. Unlimited ammo!");
+                _plugin.ShowEvent("Tank Round", $"{_plugin.Config.TankHP} HP, full armor, XM1014 only. Unlimited ammo!");
                 _plugin.StripAllWeapons();
                 _plugin.GiveAllPlayersKnives();
                 _plugin.SetAllPlayersHealth(_plugin.Config.TankHP);
                 _plugin.GiveAllPlayersFullArmor();
-                _plugin.GiveAllPlayersShotgun();
+                _plugin.GiveAllPlayersXM1014();
                 _plugin.SetConVar("sv_infinite_ammo", 2);
                 break;
             case RandomRoundEvents.EventType.VampireRound:
