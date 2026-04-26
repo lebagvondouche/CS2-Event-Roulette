@@ -12,4 +12,10 @@
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="review-CS2-Force-Team-Join\**\*.cs" />
+    <EmbeddedResource Remove="review-CS2-Force-Team-Join\**\*" />
+    <None Remove="review-CS2-Force-Team-Join\**\*" />
+  </ItemGroup>
 </Project>

@@ -122,6 +122,11 @@ internal sealed class LoadoutCombat
                 _plugin.GiveAllPlayersKnives();
                 _plugin.GiveAllPlayersPistols();
                 break;
+            case RandomRoundEvents.EventType.ScreenShakeRound:
+                _plugin.ShowEvent("Screen Shake Round", "Normal buy round, but everyone gets hit by constant shake pulses!");
+                _plugin.GiveAllPlayersStandardLoadout();
+                _plugin.StartScreenShakeRound();
+                break;
         }
     }
 

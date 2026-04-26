@@ -2,7 +2,6 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
-using CounterStrikeSharp.API.Modules.UserMessages;
 
 namespace RandomRoundEvents;
 
@@ -237,20 +236,10 @@ internal sealed class ToxicSmokes
         _nextDebuffCueAt[player.Slot] = now + _plugin.Config.ToxicSmokeDebuffCueInterval;
         player.PrintToCenterAlert($"Poisoned! -{totalDamage} HP");
 
-        try
-        {
-            var shake = UserMessage.FromPartialName("Shake");
-            shake.SetFloat("duration", _plugin.Config.ToxicSmokeShakeDuration);
-            shake.SetFloat("amplitude", _plugin.Config.ToxicSmokeShakeAmplitude);
-            shake.SetFloat("frequency", _plugin.Config.ToxicSmokeShakeFrequency);
-            shake.SetInt("command", (int)ShakeCommand_t.SHAKE_START);
-            shake.Recipients.Add(player);
-            shake.Send();
-        }
-        catch (Exception ex)
-        {
-            if (_plugin.Config.Debug)
-                _plugin.LogToxicSmokesWarning("[RandomRoundEvents] Failed to send toxic debuff shake to {Player}: {Error}", player.PlayerName, ex.Message);
-        }
+        _plugin.SendShakeToPlayer(
+            player,
+            _plugin.Config.ToxicSmokeShakeDuration,
+            _plugin.Config.ToxicSmokeShakeAmplitude,
+            _plugin.Config.ToxicSmokeShakeFrequency);
     }
 }

@@ -27,6 +27,7 @@
   "EnableGrenadeRouletteRound": true,
   "EnableRainbowSmokesRound": true,
   "EnableToxicSmokesRound": true,
+  "EnableScreenShakeRound": true,
   "EnableClownGrenadesRound": false,
 
   "LowGravityValue": 300,
@@ -61,6 +62,10 @@
   "ToxicSmokeShakeDuration": 0.35,
   "ToxicSmokeShakeAmplitude": 2.5,
   "ToxicSmokeShakeFrequency": 1.5,
+  "ScreenShakeInterval": 4.0,
+  "ScreenShakeDuration": 0.6,
+  "ScreenShakeAmplitude": 4.0,
+  "ScreenShakeFrequency": 2.0,
   "ClownGrenadesModelScale": 0.35,
   "MayhemRoundChance": 15,
   "MayhemRoundBlocklist": [
