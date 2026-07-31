@@ -94,8 +94,6 @@ public class RandomRoundEventsConfig : BasePluginConfig
     public static readonly List<string> DefaultMayhemRoundBlocklist = new()
     {
         "HeadshotOnly",
-        "SwapTeams",
-        "FlashbangSpam",
         "KnifeOnly",
         "ZeusOnly",
         "PowerUpRound",
@@ -207,7 +205,8 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private CounterStrikeSharp.API.Modules.Timers.Timer? _ammoRefillTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _bombRefreshTimer;
     private CounterStrikeSharp.API.Modules.Timers.Timer? _screenShakeTimer;
-    
+    private readonly List<CounterStrikeSharp.API.Modules.Timers.Timer> _announcementTimers = new();
+
     private readonly Dictionary<int, float> _playerSpeeds = new();
     private readonly Dictionary<int, uint> _playerFovs = new();
     private readonly List<CDynamicProp> _glowEntities = new();
@@ -552,14 +551,6 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
         var attacker = @event.Attacker;
         if (attacker == null || !IsPlayerValid(attacker)) return HookResult.Continue;
 
-        if (_activeEvent == EventType.HeadshotOnly && @event.Hitgroup != 1)
-        {
-            // Not a headshot — heal back the damage
-            int dmg = @event.DmgHealth;
-            pawn.Health = Math.Min(pawn.Health + dmg, 100);
-            Utilities.SetStateChanged(pawn, "CBaseEntity", "m_iHealth");
-        }
-
         if (_activeEvent == EventType.DoubleDamage || _mayhem.DoubleDamageActive)
         {
             int extraDamage = @event.DmgHealth * (Config.DoubleDamageMultiplier - 1);
@@ -786,6 +777,7 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
     private void ResetAllState()
     {
         _bombRefreshTimer?.Kill();
+        CancelPendingAnnouncements();
         _pendingReturnToSenderTeleports.Clear();
 
         _loadoutCombat.Reset();
@@ -873,12 +865,21 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
     private void AnnounceEvent(string title, string description, string accentColor = "#66b3ff", string badgeText = "EVENT")
     {
+        CancelPendingAnnouncements();
+
         string message = $"[{badgeText}] {title}\n{description}";
         SendCenterAnnouncement(message);
-        AddTimer(1.0f, () => SendCenterAnnouncement(message));
-        AddTimer(2.0f, () => SendCenterAnnouncement(message));
-        AddTimer(3.0f, () => SendCenterAnnouncement(message));
-        AddTimer(4.0f, () => SendCenterAnnouncement(message));
+        _announcementTimers.Add(AddTimer(1.0f, () => SendCenterAnnouncement(message)));
+        _announcementTimers.Add(AddTimer(2.0f, () => SendCenterAnnouncement(message)));
+        _announcementTimers.Add(AddTimer(3.0f, () => SendCenterAnnouncement(message)));
+        _announcementTimers.Add(AddTimer(4.0f, () => SendCenterAnnouncement(message)));
+    }
+
+    private void CancelPendingAnnouncements()
+    {
+        foreach (var timer in _announcementTimers)
+            timer.Kill();
+        _announcementTimers.Clear();
     }
 
     private static void SendCenterAnnouncement(string message)
@@ -1369,7 +1370,9 @@ public class RandomRoundEvents : BasePlugin, IPluginConfig<RandomRoundEventsConf
 
                 chicken.DispatchSpawn();
                 chicken.Teleport(pawn.AbsOrigin + offset, pawn.AbsRotation, pawn.AbsVelocity);
-                chicken.CBodyComponent!.SceneNode!.Scale = Config.ChickenSize;
+                var sceneNode = chicken.CBodyComponent?.SceneNode;
+                if (sceneNode != null)
+                    sceneNode.Scale = Config.ChickenSize;
                 Schema.SetSchemaValue(chicken.Handle, "CChicken", "m_leader", player.PlayerPawn.Raw);
                 _spawnedChickens.Add(chicken);
             }

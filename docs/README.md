@@ -258,8 +258,6 @@ csgo/
   "MayhemRoundChance": 15,
   "MayhemRoundBlocklist": [
     "HeadshotOnly",
-    "SwapTeams",
-    "FlashbangSpam",
     "KnifeOnly",
     "ZeusOnly",
     "PowerUpRound",
