@@ -164,7 +164,7 @@ The plugin is easiest to reason about when grouped by behavior family instead of
 
 ## Installation
 
-1. Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html) and Metamod on your CS2 server.
+1. Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html) (build 1.0.369 or newer — CounterStrikeSharp moved to a .NET 10 runtime at that release, and this plugin targets `net10.0` to match) and Metamod on your CS2 server.
 2. Download the latest release from the [GitHub Releases page](https://github.com/lebagvondouche/CS2-Event-Roulette/releases).
 3. Copy the published plugin folder into `csgo/addons/counterstrikesharp/plugins/RandomRoundEvents`.
 4. Copy the config into `csgo/addons/counterstrikesharp/configs/plugins/RandomRoundEvents/RandomRoundEvents.json`.

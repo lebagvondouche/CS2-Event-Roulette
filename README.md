@@ -33,7 +33,7 @@ The plugin currently includes `27` standard rounds plus `Mayhem`, with `Clown Gr
 
 ## Quick Start
 
-1. Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html) and Metamod on your server.
+1. Install [CounterStrikeSharp](https://docs.cssharp.dev/docs/guides/getting-started.html) (build 1.0.369 or newer, .NET 10) and Metamod on your server.
 2. Download a release or build the plugin yourself.
 3. Copy the plugin output into `csgo/addons/counterstrikesharp/plugins/RandomRoundEvents`.
 4. Copy [RandomRoundEvents.json](RandomRoundEvents.json) into `csgo/addons/counterstrikesharp/configs/plugins/RandomRoundEvents/`.
